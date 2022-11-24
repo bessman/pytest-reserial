@@ -9,8 +9,10 @@ Pytest plugin for recording and replaying serial port traffic during tests.
 ## Usage
 
 1.  Write your tests as if they would run with the device connected.
+
 2.  When your tests pass with the device connected, run `pytest --record` to record serial traffic 
     from the passing tests.
+
 3.  Now you can disconnect the device and run your tests with `pytest --replay`.
 
 A simple example:
@@ -40,7 +42,7 @@ Next:
 
 The logged traffic will be stored in JSON files in the same directory as your test files, and will have the same names as the test files except with a .json extension instead of .py. For example, if your project layout is:
 
-```
+```shell
 ├── src
 │   ├── myproject
 │   │   ├── ...
@@ -54,19 +56,21 @@ Then after running `pytest --record`, the test/ directory will contain a new fil
 
 Have you ever tried to write tests for a program that talks to an external device over serial (like an Arduino or something)? You probably wrote the tests assuming that the device is question would always be connected when running the tests, right? And later you got bit by one or more of the pitfalls of that approach:
 
--  You wanted to run the tests when the device wasn't connected. Perhaps you were travelling, or
-   someone had borrowed it. Whatever the reason, you found yourself unable to run the tests, and
-   therefore unable to continue development, until you could connect the device again.
--  You made a change to your program, and one of your tests failed. So far so good, right? That's
-   what tests are for, after all. Only, you can't figure out why the test is failing. You spend
-   several hours trying to fix it, but eventually give up and revert your changes.
-   But the test still fails.
-   So you try another device, and sure enough, now it passes. Turns out, what you thought was a
-   problem with your code was actually a hardware failure.
--  Some of the tests depend on the device being in a certain state, and some of the tests depend on
-   the device being in *another* state. So you can't run the entire test suite all at once, instad
-   being forced to stop it halfway through and mess with a bunch of wires and buttons before you can
-   run the rest of the tests.
+-   You wanted to run the tests when the device wasn't connected. Perhaps you were travelling, or
+    someone had borrowed it. Whatever the reason, you found yourself unable to run the tests, and
+    therefore unable to continue development, until you could connect the device again.
+
+-   You made a change to your program, and one of your tests failed. So far so good, right? That's
+    what tests are for, after all. Only, you can't figure out why the test is failing. You spend
+    several hours trying to fix it, but eventually give up and revert your changes.
+    But the test still fails.
+    So you try another device, and sure enough, now it passes. Turns out, what you thought was a
+    problem with your code was actually a hardware failure.
+
+-   Some of the tests depend on the device being in a certain state, and some of the tests depend on
+    the device being in *another* state. So you can't run the entire test suite all at once, instad
+    being forced to stop it halfway through and mess with a bunch of wires and buttons before you can
+    run the rest of the tests.
    
 And then you asked yourself, 'How do I write my tests so that the device doesn't need to be connected?' You may have gone down the rabbit hole that is mocking, and then replaced large parts of pyserial with mock interfaces, and ultimately ended up with a test suite that was significantly more complex than the program it was meant to test.
 
