@@ -1,70 +1,101 @@
-def test_bar_fixture(testdir):
-    """Make sure that pytest accepts our fixture."""
+import json
 
-    # create a temporary pytest test module
-    testdir.makepyfile(
-        """
-        def test_sth(bar):
-            assert bar == "europython2015"
-    """
-    )
+from serial import Serial
 
-    # run pytest with the following cmd args
-    result = testdir.runpytest("--foo=europython2015", "-v")
+TEST_RX = b"\x01"
+TEST_TX = b"\x02"
+TEST_FILE = f"""
+            import serial
+            def test_reserial(reserial):
+                s = serial.Serial(port="/dev/ttyUSB0")
+                s.write({TEST_TX})
+                assert s.read() == {TEST_RX}
+            """
+TEST_FILE_BAD_TX = f"""
+            import serial
+            def test_reserial(reserial):
+                s = serial.Serial(port="/dev/ttyUSB0")
+                s.write({TEST_RX})
+                assert s.read() == {TEST_RX}
+            """
+TEST_JSON = f"""
+            {{
+                "test_reserial": {{
+                    "tx": {list(TEST_TX)},
+                    "rx": {list(TEST_RX)}
+                }}
+            }}
+            """
 
-    # fnmatch_lines does an assertion internally
-    result.stdout.fnmatch_lines(
-        [
-            "*::test_sth PASSED*",
-        ]
-    )
 
-    # make sure that that we get a '0' exit code for the testsuite
+def test_record(monkeypatch, pytester):
+    pytester.makepyfile(TEST_FILE)
+
+    def patch_write(self: Serial, data: bytes) -> int:
+        return len(data)
+
+    def patch_read(self: Serial, size: int = 1) -> bytes:
+        return TEST_RX
+
+    def patch_open(self: Serial) -> None:
+        self.is_open = True
+
+    def patch_close(self: Serial) -> None:
+        self.is_open = False
+
+    monkeypatch.setattr(Serial, "write", patch_write)
+    monkeypatch.setattr(Serial, "read", patch_read)
+    monkeypatch.setattr(Serial, "open", patch_open)
+    monkeypatch.setattr(Serial, "close", patch_close)
+    result = pytester.runpytest("--record")
+
+    with open("test_record.json", "r") as f:
+        recording = json.load(f)
+
+    assert recording == json.loads(TEST_JSON)
     assert result.ret == 0
 
 
-def test_help_message(testdir):
-    result = testdir.runpytest(
-        "--help",
+def test_replay(pytester):
+    pytester.makefile(".json", test_replay=TEST_JSON)
+    pytester.makepyfile(TEST_FILE)
+    result = pytester.runpytest("--replay")
+    assert result.ret == 0
+
+
+def test_dont_patch(pytester):
+    pytester.makepyfile(
+        """
+        from serial import Serial
+        real_read = Serial.read
+        def test_something(reserial):
+            assert Serial.read == real_read
+        """
     )
-    # fnmatch_lines does an assertion internally
+    result = pytester.runpytest()
+    assert result.ret == 0
+
+
+def test_invalid_option(pytester):
+    pytester.makepyfile(TEST_FILE)
+    result = pytester.runpytest("--replay", "--record")
+    result.assert_outcomes(errors=1)
+
+
+def test_bad_tx(pytester):
+    pytester.makefile(".json", test_bad_tx=TEST_JSON)
+    pytester.makepyfile(TEST_FILE_BAD_TX)
+    result = pytester.runpytest("--replay")
+    result.assert_outcomes(errors=1, failed=1)
+
+
+def test_help_message(pytester):
+    result = pytester.runpytest("--help")
     result.stdout.fnmatch_lines(
         [
             "reserial:",
-            '*--foo=DEST_FOO*Set the value for the fixture "bar".',
+            "*--record * Record serial traffic.",
+            "*--replay * Replay serial traffic.",
         ]
     )
-
-
-def test_hello_ini_setting(testdir):
-    testdir.makeini(
-        """
-        [pytest]
-        HELLO = world
-    """
-    )
-
-    testdir.makepyfile(
-        """
-        import pytest
-
-        @pytest.fixture
-        def hello(request):
-            return request.config.getini('HELLO')
-
-        def test_hello_world(hello):
-            assert hello == 'world'
-    """
-    )
-
-    result = testdir.runpytest("-v")
-
-    # fnmatch_lines does an assertion internally
-    result.stdout.fnmatch_lines(
-        [
-            "*::test_hello_world PASSED*",
-        ]
-    )
-
-    # make sure that that we get a '0' exit code for the testsuite
     assert result.ret == 0

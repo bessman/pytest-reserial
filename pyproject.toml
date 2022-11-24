@@ -1,12 +1,12 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
+requires = ["flit_core >=3.8,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "pytest_reserial"
+name = "pytest-reserial"
 authors = [{name = "Alexander Bessman", email = "alexander.bessman@gmail.com"}]
 dynamic = ["version", "description"]
-readme = "README.rst"
+readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
 dependencies = [
@@ -26,6 +26,11 @@ keywords = [
     "serial",
     "testing",
     "logging",
+    "mocking",
+    "patching",
+    "stubbing",
+    "record",
+    "replay",
 ]
 
 [project.urls]
@@ -33,3 +38,56 @@ Home = "https://github.com/bessman/pytest-reserial"
 
 [project.entry-points."pytest11"]
 reserial = "pytest_reserial.reserial"
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = true
+envlist =
+    isort
+    black
+    prospector
+    pydocstyle
+    test
+    report
+
+[testenv:isort]
+deps = isort
+commands = isort --check-only .
+
+[testenv:black]
+deps = black
+commands = black --check .
+
+[testenv:prospector]
+deps =
+    prospector
+    mypy
+    bandit
+commands = prospector .
+
+[testenv:pydocstyle]
+deps = pydocstyle
+commands = pydocstyle --convention=numpy src/
+
+[testenv:test]
+deps =
+    pytest
+    coverage
+commands = coverage run --source=pytest_reserial -m pytest
+
+[testenv:report]
+deps = coverage
+commands = coverage report
+depends = test
+
+[gh-actions]
+python =
+    3.7: test
+    3.8: test
+    3.9: test
+    3.10: black, prospector, test, report
+"""
+
+[tool.isort]
+profile = "black"
