@@ -1,4 +1,4 @@
-name: Run tox and upload coverage report
+name: build
 
 on:
   - push
