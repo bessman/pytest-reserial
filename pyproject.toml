@@ -82,6 +82,11 @@ deps = coverage
 commands = coverage report
 depends = test
 
+[testenv:xml]
+deps = coverage
+commands = coverage xml
+depends = test
+
 [gh-actions]
 python =
     3.7: test
