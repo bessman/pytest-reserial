@@ -18,6 +18,7 @@ jobs:
     - name: Generate coverage report
       run: |
         pip install tox
+        tox -e test
         tox -e xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
