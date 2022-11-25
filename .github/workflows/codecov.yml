@@ -17,9 +17,8 @@ jobs:
         python-version: '3.11'
     - name: Generate coverage report
       run: |
-        pip install coverage pytest
-        coverage run --source=pytest_reserial -m pytest
-        coverage xml
+        pip install tox
+        tox xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
