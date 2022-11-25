@@ -1,6 +1,6 @@
 # pytest-reserial
 
-![build](https://github.com/bessman/pytest-reserial/actions/workflows/tox.yml/badge.svg)
+![build](https://github.com/bessman/pytest-reserial/actions/workflows/main.yml/badge.svg)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/18b7f42be4e043ce98a4852996a343dc)](https://app.codacy.com/gh/bessman/pytest-reserial?utm_source=github.com&utm_medium=referral&utm_content=bessman/pytest-reserial&utm_campaign=Badge_Grade_Settings)
 [![codecov](https://codecov.io/gh/bessman/pytest-reserial/branch/master/graph/badge.svg)](https://codecov.io/gh/bessman/pytest-reserial)
 
