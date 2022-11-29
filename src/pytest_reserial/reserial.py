@@ -44,7 +44,7 @@ def reserial(
     replay = request.config.getoption("--replay")
     mode = Mode(replay | record << 1)
 
-    logpath = Path(request.path).stem + ".json"
+    logpath = Path(request.path).parent / (Path(request.path).stem + ".json")
     testname = request.node.name
     log = get_traffic_log(mode, logpath, testname)
 
