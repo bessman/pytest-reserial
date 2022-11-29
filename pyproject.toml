@@ -65,7 +65,7 @@ deps =
     prospector
     mypy
     bandit
-commands = prospector .
+commands = prospector -X .
 
 [testenv:pydocstyle]
 deps = pydocstyle
