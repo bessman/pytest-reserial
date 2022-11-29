@@ -64,7 +64,7 @@ def reserial(
         raise ValueError("Not empty")
 
 
-def get_traffic_log(mode: Mode, logpath: str, testname: str) -> Dict[str, List[int]]:
+def get_traffic_log(mode: Mode, logpath: Path, testname: str) -> Dict[str, List[int]]:
     """Load recorded traffic (replay) or create an empty log (record).
 
     Parameters
@@ -275,7 +275,7 @@ def get_record_methods(
 
 def write_log(
     log: Dict[str, List[int]],
-    logpath: str,
+    logpath: Path,
     testname: str,
 ) -> None:
     """Write recorded traffic to log file.
