@@ -62,7 +62,7 @@ commands = black --check .
 
 [testenv:prospector]
 deps =
-    prospector @ git+https://github.com/PyCQA/prospector.git
+    prospector
     mypy
     bandit
 commands = prospector .
