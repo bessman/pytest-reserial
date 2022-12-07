@@ -72,7 +72,7 @@ Have you ever tried to write tests for a program that talks to an external devic
     problem with your code was actually a hardware failure.
 
 -   Some of the tests depend on the device being in a certain state, and some of the tests depend on
-    the device being in *another* state. So you can't run the entire test suite all at once, instad
+    the device being in *another* state. So you can't run the entire test suite all at once, instead
     being forced to stop it halfway through and mess with a bunch of wires and buttons before you can
     run the rest of the tests.
    
