@@ -179,8 +179,6 @@ def get_replay_methods(
         ValueError
             If written data does not match recorded data.
         """
-        nonlocal log
-
         if list(data) == log["tx"][: len(data)]:
             log["tx"] = log["tx"][len(data) :]
         else:
@@ -200,7 +198,6 @@ def get_replay_methods(
         Monkeypatch this method over Serial.read to replay traffic. Parameters and
         return values are identical to Serial.read.
         """
-        nonlocal log
         data = log["rx"][:size]
         log["rx"] = log["rx"][size:]
         return bytes(data)
@@ -208,7 +205,7 @@ def get_replay_methods(
     return replay_read, replay_write, replay_open, replay_close
 
 
-# The open/close method patches don't need any nonlocals, so they can stay down here.
+# The open/close method patches don't need access to logs, so they can stay down here.
 def replay_open(self: Serial) -> None:
     """Pretend that port was opened."""
     self.is_open = True
@@ -254,7 +251,6 @@ def get_record_methods(
         Monkeypatch this method over Serial.write to record traffic. Parameters and
         return values are identical to Serial.write.
         """
-        nonlocal log
         log["tx"] += list(data)
         written: int = real_write(self, data)
         return written
@@ -266,7 +262,6 @@ def get_record_methods(
         return values are identical to Serial.read.
         """
         data: bytes = real_read(self, size)
-        nonlocal log
         log["rx"] += list(data)
         return data
 
