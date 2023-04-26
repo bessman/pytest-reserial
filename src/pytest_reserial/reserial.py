@@ -28,6 +28,17 @@ class Mode(IntEnum):
     INVALID = 3
 
 
+def reconfigure_port_patch(
+    self: Serial, force_update: bool = False  # pylint: disable=unused-argument
+) -> None:
+    """Don't try to set parameters on the mocked port.
+
+    When changing settings such as timeout, parity, stop bits, etc. the
+    _reconfigure_port method is called. It operates directly on the underlying operating
+    system resource, which doesn't exist in reserial. Therefore, this patch is required.
+    """
+
+
 @pytest.fixture
 def reserial(
     monkeypatch: pytest.MonkeyPatch,
@@ -53,6 +64,7 @@ def reserial(
     monkeypatch.setattr(Serial, "write", write_patch)
     monkeypatch.setattr(Serial, "open", open_patch)
     monkeypatch.setattr(Serial, "close", close_patch)
+    monkeypatch.setattr(Serial, "_reconfigure_port", reconfigure_port_patch)
 
     yield
 
