@@ -99,3 +99,20 @@ def test_help_message(pytester):
         ]
     )
     assert result.ret == 0
+
+
+def test_change_settings(pytester):
+    pytester.makefile(
+        ".json",
+        test_change_settings='{"test_reserial": {"tx": [], "rx": []}}',
+    )
+    pytester.makepyfile(
+        """
+            import serial
+            def test_reserial(reserial):
+                s = serial.Serial(port="/dev/ttyUSB0")
+                s.timeout = 1
+        """
+    )
+    result = pytester.runpytest("--replay")
+    assert result.ret == 0
