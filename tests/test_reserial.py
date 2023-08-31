@@ -10,6 +10,10 @@ TEST_FILE = f"""
                 s = serial.Serial(port="/dev/ttyUSB0")
                 s.write({TEST_TX})
                 assert s.read() == {TEST_RX}
+            def test_reserial2(reserial):
+                s = serial.Serial(port="/dev/ttyUSB0")
+                s.write({TEST_TX})
+                assert s.read() == {TEST_RX}
             """
 TEST_FILE_BAD_TX = f"""
             import serial
@@ -21,8 +25,12 @@ TEST_FILE_BAD_TX = f"""
 TEST_JSON = f"""
             {{
                 "test_reserial": {{
-                    "tx": {list(TEST_TX)},
-                    "rx": {list(TEST_RX)}
+                    "rx": {list(TEST_RX)},
+                    "tx": {list(TEST_TX)}
+                }},
+                "test_reserial2": {{
+                    "rx": {list(TEST_RX)},
+                    "tx": {list(TEST_TX)}
                 }}
             }}
             """
@@ -79,7 +87,7 @@ def test_dont_patch(pytester):
 def test_invalid_option(pytester):
     pytester.makepyfile(TEST_FILE)
     result = pytester.runpytest("--replay", "--record")
-    result.assert_outcomes(errors=1)
+    result.assert_outcomes(errors=2)
 
 
 def test_bad_tx(pytester):

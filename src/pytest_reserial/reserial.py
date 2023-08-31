@@ -296,10 +296,15 @@ def write_log(
     testname: str
         The name of the currently running test, which is used as a key in the log file.
     """
-    with open(logpath, "w+", encoding="utf-8") as logfile:
-        try:
+    try:
+        # If the file exists, read its contents.
+        with open(logpath, mode="r", encoding="utf-8") as logfile:
             logs = json.load(logfile)
-        except json.decoder.JSONDecodeError:
-            logs = {}
-        logs[testname] = log
+    except FileNotFoundError:
+        logs = {}
+
+    logs[testname] = log
+
+    with open(logpath, mode="w", encoding="utf-8") as logfile:
+        # Wipe the file if it exists, or create a new file if it doesn't.
         json.dump(logs, logfile)
