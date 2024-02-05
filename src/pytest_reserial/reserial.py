@@ -221,6 +221,7 @@ def get_replay_methods(
 def replay_open(self: Serial) -> None:
     """Pretend that port was opened."""
     self.is_open = True
+    self.fd = None
 
 
 def replay_close(self: Serial) -> None:
@@ -305,6 +306,6 @@ def write_log(
 
     logs[testname] = log
 
+    # Wipe the file if it exists, or create a new file if it doesn't.
     with open(logpath, mode="w", encoding="utf-8") as logfile:
-        # Wipe the file if it exists, or create a new file if it doesn't.
         json.dump(logs, logfile)
