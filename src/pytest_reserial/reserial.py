@@ -1,21 +1,37 @@
 """Record or replay serial traffic when running tests."""
 
+from __future__ import annotations
+
 import json
 from enum import IntEnum
 from pathlib import Path
 from typing import Callable, Dict, Generator, List, Tuple
 
 import pytest
-from serial import Serial  # type: ignore[import]
+from serial import Serial  # type: ignore[import-untyped]
+
+TrafficLog = Dict[str, List[int]]
+PatchMethods = Tuple[
+    Callable[[Serial, int], bytes],
+    Callable[[Serial, bytes], int],
+    Callable[[Serial], None],
+    Callable[[Serial], None],
+]
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:  # noqa: D103
     group = parser.getgroup("reserial")
     group.addoption(
-        "--record", action="store_true", default=False, help="Record serial traffic."
+        "--record",
+        action="store_true",
+        default=False,
+        help="Record serial traffic.",
     )
     group.addoption(
-        "--replay", action="store_true", default=False, help="Replay serial traffic."
+        "--replay",
+        action="store_true",
+        default=False,
+        help="Replay serial traffic.",
     )
 
 
@@ -29,7 +45,8 @@ class Mode(IntEnum):
 
 
 def reconfigure_port_patch(
-    self: Serial, force_update: bool = False  # pylint: disable=unused-argument
+    self: Serial,  # noqa: ARG001
+    force_update: bool = False,  # noqa: ARG001, FBT001, FBT002
 ) -> None:
     """Don't try to set parameters on the mocked port.
 
@@ -39,7 +56,7 @@ def reconfigure_port_patch(
     """
 
 
-@pytest.fixture
+@pytest.fixture()
 def reserial(
     monkeypatch: pytest.MonkeyPatch,
     request: pytest.FixtureRequest,
@@ -81,7 +98,7 @@ def reserial(
         pytest.fail(msg)
 
 
-def get_traffic_log(mode: Mode, logpath: Path, testname: str) -> Dict[str, List[int]]:
+def get_traffic_log(mode: Mode, logpath: Path, testname: str) -> TrafficLog:
     """Load recorded traffic (replay) or create an empty log (record).
 
     Parameters
@@ -105,26 +122,20 @@ def get_traffic_log(mode: Mode, logpath: Path, testname: str) -> Dict[str, List[
         If both '--replay' and '--record' were specified.
     """
     if mode == Mode.INVALID:
-        raise ValueError("Choose one of 'replay' or 'record', not both.")
+        msg = "Choose one of 'replay' or 'record', not both"
+        raise ValueError(msg)
 
-    log: Dict[str, List[int]] = {"rx": [], "tx": []}
+    log: TrafficLog = {"rx": [], "tx": []}
 
     if mode == Mode.REPLAY:
-        with open(logpath, "r", encoding="utf-8") as logfile:
+        with Path.open(logpath) as logfile:
             logs = json.load(logfile)
         log = logs[testname]
 
     return log
 
 
-def get_patched_methods(
-    mode: Mode, log: Dict[str, List[int]]
-) -> Tuple[
-    Callable[[Serial, int], bytes],
-    Callable[[Serial, bytes], int],
-    Callable[[Serial], None],
-    Callable[[Serial], None],
-]:
+def get_patched_methods(mode: Mode, log: TrafficLog) -> PatchMethods:
     """Return patched read, write, open, and closed methods.
 
     The methods should be monkeypatched over the corresponding `Serial` methods.
@@ -155,14 +166,7 @@ def get_patched_methods(
     return Serial.read, Serial.write, Serial.open, Serial.close
 
 
-def get_replay_methods(
-    log: Dict[str, List[int]]
-) -> Tuple[
-    Callable[[Serial, int], bytes],
-    Callable[[Serial, bytes], int],
-    Callable[[Serial], None],
-    Callable[[Serial], None],
-]:
+def get_replay_methods(log: TrafficLog) -> PatchMethods:
     """Return patched read, write, open, and close methods for replaying logged traffic.
 
     Parameters
@@ -183,7 +187,7 @@ def get_replay_methods(
     """
 
     def replay_write(
-        self: Serial,  # pylint: disable=unused-argument
+        self: Serial,  # noqa: ARG001
         data: bytes,
     ) -> int:
         """Compare TX data to recording instead of writing to the bus.
@@ -208,7 +212,7 @@ def get_replay_methods(
         return len(data)
 
     def replay_read(
-        self: Serial,  # pylint: disable=unused-argument
+        self: Serial,  # noqa: ARG001
         size: int = 1,
     ) -> bytes:
         """Replay RX data from recording instead of reading from the bus.
@@ -235,14 +239,7 @@ def replay_close(self: Serial) -> None:
     self.is_open = False
 
 
-def get_record_methods(
-    log: Dict[str, List[int]]
-) -> Tuple[
-    Callable[[Serial, int], bytes],
-    Callable[[Serial, bytes], int],
-    Callable[[Serial], None],
-    Callable[[Serial], None],
-]:
+def get_record_methods(log: TrafficLog) -> PatchMethods:
     """Return patched read, write, open, and close methods for recording traffic.
 
     Parameters
@@ -288,7 +285,7 @@ def get_record_methods(
 
 
 def write_log(
-    log: Dict[str, List[int]],
+    log: TrafficLog,
     logpath: Path,
     testname: str,
 ) -> None:
@@ -305,7 +302,7 @@ def write_log(
     """
     try:
         # If the file exists, read its contents.
-        with open(logpath, mode="r", encoding="utf-8") as logfile:
+        with Path.open(logpath) as logfile:
             logs = json.load(logfile)
     except FileNotFoundError:
         logs = {}
@@ -313,5 +310,5 @@ def write_log(
     logs[testname] = log
 
     # Wipe the file if it exists, or create a new file if it doesn't.
-    with open(logpath, mode="w", encoding="utf-8") as logfile:
+    with Path.open(logpath, mode="w") as logfile:
         json.dump(logs, logfile)

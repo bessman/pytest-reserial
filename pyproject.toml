@@ -7,7 +7,7 @@ name = "pytest-reserial"
 authors = [{name = "Alexander Bessman", email = "alexander.bessman@gmail.com"}]
 dynamic = ["version", "description"]
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = {file = "LICENSE"}
 dependencies = [
     "pytest",
@@ -15,11 +15,11 @@ dependencies = [
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Development Status :: 4 - Beta",
     "License :: OSI Approved :: MIT License",
 ]
@@ -40,61 +40,35 @@ Home = "https://github.com/bessman/pytest-reserial"
 [project.entry-points."pytest11"]
 reserial = "pytest_reserial.reserial"
 
-[tool.tox]
-legacy_tox_ini = """
-[tox]
-isolated_build = true
-envlist =
-    isort
-    black
-    prospector
-    pydocstyle
-    test
-    report
-
-[testenv:isort]
-deps = isort
-commands = isort --check-only .
-
-[testenv:black]
-deps = black
-commands = black --check .
-
-[testenv:prospector]
-deps =
-    prospector
-    mypy
-    bandit
-commands = prospector .
-
-[testenv:pydocstyle]
-deps = pydocstyle
-commands = pydocstyle --convention=numpy src/
-
-[testenv:test]
-deps =
-    pytest
-    coverage
-commands = coverage run --source=pytest_reserial -m pytest
-
-[testenv:report]
-deps = coverage
-commands = coverage report
-depends = test
-
-[testenv:xml]
-deps = coverage
-commands = coverage xml
-depends = test
-
-[gh-actions]
-python =
-    3.7: test
-    3.8: test
-    3.9: test
-    3.10: test
-    3.11: black, prospector, test, report
-"""
+[project.optional-dependencies]
+test = [
+    "coverage",
+]
+dev = [
+    "black",
+    "isort",
+    "mypy",
+    "ruff",
+    "tox",
+]
 
 [tool.isort]
 profile = "black"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D203",  # one-blank-line-before-class
+    "D213",  # multi-line-summary-second-line
+    "G004",  # logging-f-string
+    "N818",  # error-suffix-on-exception-name
+    "S101",  # assert
+    "ANN101",  # missing-type-self
+    "PT004",  # pytest-missing-fixture-name-underscore
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"**/{tests,docs}/*" = ["ALL"]
