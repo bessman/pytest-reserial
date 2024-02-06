@@ -48,7 +48,7 @@ def reserial(
 
     Raises
     ------
-    ValueError
+    _pytest.outcomes.Failed
         If less data than expected was read or written during replay.
     """
     record = request.config.getoption("--record")
@@ -73,7 +73,12 @@ def reserial(
         return
 
     if log["rx"] or log["tx"]:
-        raise ValueError("Not empty")
+        msg = (
+            "Some messages where not replayed:}\n"
+            f"Remaining RX: {len(log['rx'])}\n"
+            f"Remaining TX: {len(log['tx'])}"
+        )
+        pytest.fail(msg)
 
 
 def get_traffic_log(mode: Mode, logpath: Path, testname: str) -> Dict[str, List[int]]:
@@ -188,16 +193,17 @@ def get_replay_methods(
 
         Raises
         ------
-        ValueError
+        _pytest.outcomes.Failed
             If written data does not match recorded data.
         """
         if list(data) == log["tx"][: len(data)]:
             log["tx"] = log["tx"][len(data) :]
         else:
-            raise ValueError(
+            msg = (
                 "Written data does not match recorded data: "
                 f"{list(data)} != {log['tx'][: len(data)]}"
             )
+            pytest.fail(msg)
 
         return len(data)
 
