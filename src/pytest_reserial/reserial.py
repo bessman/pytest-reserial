@@ -196,7 +196,7 @@ def get_replay_methods(
         else:
             raise ValueError(
                 "Written data does not match recorded data: "
-                "f{data} != {traffic_log['tx'][: len(data)]}"
+                f"{list(data)} != {log['tx'][: len(data)]}"
             )
 
         return len(data)
