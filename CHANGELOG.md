@@ -6,11 +6,11 @@
 
 ### Changed
 
-- __Breaking__: Raise `_pytest.outcomes.Failed` instead of `ValueError` on mismatch ([`9e89c08`](https://github.com/bessman/pytest-reserial/commit/9e89c08bc19d51941e3521e6f1201416aca84b26))
+- __Breaking__: Raise `_pytest.outcomes.Failed` instead of `ValueError` on mismatch ([`b72d304`](https://github.com/bessman/pytest-reserial/commit/b72d304c1b21db524fd1eaf79c9aab91d9542b79))
 
 ### Added
 
-- Add Common Changelog ([``](https://github.com/bessman/pytest-reserial/commit/))
+- Add Common Changelog ([`4f3168f`](https://github.com/bessman/pytest-reserial/commit/4f3168f989327a853e94cf5ffb7467c4826ba759))
 
 ### Fixed
 
