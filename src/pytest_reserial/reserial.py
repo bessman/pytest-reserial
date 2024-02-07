@@ -308,7 +308,16 @@ def write_log(
         logs = {}
 
     logs[testname] = log
+    logs_str = json.dumps(logs, indent=4)
+
+    # Print traffic logs on a single line if jsbeautifier is available.
+    try:
+        import jsbeautifier  # type: ignore[import-untyped]
+
+        logs_str = jsbeautifier.beautify(logs_str)
+    except ImportError:
+        pass
 
     # Wipe the file if it exists, or create a new file if it doesn't.
     with Path.open(logpath, mode="w") as logfile:
-        json.dump(logs, logfile)
+        logfile.write(logs_str)

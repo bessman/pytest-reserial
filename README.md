@@ -84,6 +84,8 @@ With pytest-reserial, you don't have to worry about any of that. Just write your
 
 pytest-reserial depends on pytest and pyserial.
 
+If jsbeautifier is installed, each test's recorded traffic is written on a single line in the log files. Otherwise, each recorded byte is written on a separate line.
+
 ## Copyright
 
 MIT License, (C) 2022 Alexander Bessman
