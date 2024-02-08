@@ -7,9 +7,11 @@
 ### Changed
 
 - __Breaking__: Raise `_pytest.outcomes.Failed` instead of `ValueError` on mismatch ([`b72d304`](https://github.com/bessman/pytest-reserial/commit/b72d304c1b21db524fd1eaf79c9aab91d9542b79))
+- Split log files over multiple lines with `indent` ([`cd5aa41`](https://github.com/bessman/pytest-reserial/commit/cd5aa41d9be1877f68a45a4e069e1845dbb7f3c4))
 
 ### Added
 
+- Add optional dependency on jsbeautifier to write prettier log files ([`cd5aa41`](https://github.com/bessman/pytest-reserial/commit/cd5aa41d9be1877f68a45a4e069e1845dbb7f3c4))
 - Add Common Changelog ([`4f3168f`](https://github.com/bessman/pytest-reserial/commit/4f3168f989327a853e94cf5ffb7467c4826ba759))
 
 ### Fixed
