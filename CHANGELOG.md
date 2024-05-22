@@ -1,6 +1,23 @@
 # Changelog
 
-## [0.4.0] - Development
+## [0.4.1] - Development
+
+## [0.4.0] - 2024-05-22
+
+_This release changes the format for traffic log files. Use the provided `update_log.py`-script to update old logs to the new format.
+
+### Changed
+
+- __Breaking__: Store test recordings as JSON Lines instead of JSON ([`2b047d7`](https://github.com/bessman/pytest-reserial/commit/2b047d7cc96a06b201e7d25d316492e079835a61))
+- __Breaking__: Store RX and TX bytes as base64 strings instead of lists ([`2b047d7`](https://github.com/bessman/pytest-reserial/commit/2b047d7cc96a06b201e7d25d316492e079835a61))
+
+### Added
+
+- Add script (`update_log.py`) to convert old log files to new format ([`ca14b9b`](https://github.com/bessman/pytest-reserial/commit/ca14b9be86ced3a58b417dc0d8b14afde97df86d))
+
+### Removed
+
+- Remove optional dependency on jsbeautifier ([`0ba5414`](https://github.com/bessman/pytest-reserial/commit/0ba54145e8362e187a479f8a61ac553263f7d8fa))
 
 ## [0.3.0] - 2024-02-07
 
@@ -46,6 +63,7 @@ _Maintenance release._
 
 _Initial release._
 
+[0.4.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.0
 [0.3.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.3.0
 [0.2.4]: https://github.com/bessman/pytest-reserial/releases/tag/v0.2.4
 [0.2.3]: https://github.com/bessman/pytest-reserial/releases/tag/v0.2.3
