@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.3.1] - Development
+## [0.4.0] - Development
 
 ## [0.3.0] - 2024-02-07
 
