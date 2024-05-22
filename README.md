@@ -44,7 +44,7 @@ Next:
 4.  Disconnect the device.
 5.  Run `pytest --replay my_serial_app.py`. The test will pass!
 
-The logged traffic will be stored in JSON files in the same directory as your test files, and will have the same names as the test files except with a .json extension instead of .py. For example, if your project layout is:
+The logged traffic will be stored as JSON Lines, with one file per test file and one line per test, in the same directory as your test files. The files will have the same names as the test files except with a .jsonl extension instead of .py. For example, if your project layout is:
 
 ```shell
 ├── src
@@ -54,7 +54,7 @@ The logged traffic will be stored in JSON files in the same directory as your te
 │   ├── test_myproject.py
 ```
 
-Then after running `pytest --record`, the test/ directory will contain a new file, test_myproject.json, containing the recorded serial traffic from the tests.
+Then after running `pytest --record`, the test/ directory will contain a new file, test_myproject.jsonl, containing the recorded serial traffic from the tests.
 
 ## Why
 

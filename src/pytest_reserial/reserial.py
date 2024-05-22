@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import base64
 import json
 from enum import IntEnum
 from pathlib import Path
-from typing import Callable, Dict, Generator, List, Tuple
+from typing import Callable, Dict, Iterator, Literal, Tuple
 
 import pytest
 from serial import Serial  # type: ignore[import-untyped]
 
-TrafficLog = Dict[str, List[int]]
+TrafficLog = Dict[Literal["rx", "tx"], bytes]
 PatchMethods = Tuple[
     Callable[[Serial, int], bytes],
     Callable[[Serial, bytes], int],
@@ -60,7 +61,7 @@ def reconfigure_port_patch(
 def reserial(
     monkeypatch: pytest.MonkeyPatch,
     request: pytest.FixtureRequest,
-) -> Generator[None, None, None]:
+) -> Iterator[None]:
     """Record or replay serial traffic.
 
     Raises
@@ -72,9 +73,9 @@ def reserial(
     replay = request.config.getoption("--replay")
     mode = Mode(replay | record << 1)
 
-    logpath = Path(request.path).parent / (Path(request.path).stem + ".json")
-    testname = request.node.name
-    log = get_traffic_log(mode, logpath, testname)
+    log_path = Path(request.path).parent / (Path(request.path).stem + ".jsonl")
+    test_name = request.node.name
+    log = get_traffic_log(mode, log_path, test_name)
 
     read_patch, write_patch, open_patch, close_patch = get_patched_methods(mode, log)
     monkeypatch.setattr(Serial, "read", read_patch)
@@ -86,7 +87,7 @@ def reserial(
     yield
 
     if mode == Mode.RECORD:
-        write_log(log, logpath, testname)
+        write_log(log, log_path, test_name)
         return
 
     if log["rx"] or log["tx"]:
@@ -98,16 +99,16 @@ def reserial(
         pytest.fail(msg)
 
 
-def get_traffic_log(mode: Mode, logpath: Path, testname: str) -> TrafficLog:
+def get_traffic_log(mode: Mode, log_path: Path, test_name: str) -> TrafficLog:
     """Load recorded traffic (replay) or create an empty log (record).
 
     Parameters
     ----------
     mode : Mode
         The requested mode of operation, i.e. `REPLAY`, `RECORD`, or `DONT_PATCH`.
-    logpath: str
+    log_path: str
         The name of the file where recorded traffic is logged.
-    testname: str
+    test_name: str
         The name of the currently running test, which is used as a key in the log file.
 
     Returns
@@ -120,17 +121,25 @@ def get_traffic_log(mode: Mode, logpath: Path, testname: str) -> TrafficLog:
     ------
     ValueError
         If both '--replay' and '--record' were specified.
+        If no the test has no recorded traffic .
     """
     if mode == Mode.INVALID:
         msg = "Choose one of 'replay' or 'record', not both"
         raise ValueError(msg)
 
-    log: TrafficLog = {"rx": [], "tx": []}
+    log: TrafficLog = {"rx": b"", "tx": b""}
 
     if mode == Mode.REPLAY:
-        with Path.open(logpath) as logfile:
-            logs = json.load(logfile)
-        log = logs[testname]
+        with Path.open(log_path) as fin:
+            for line in fin:
+                if log := json.loads(line).get(test_name):
+                    break
+            else:
+                msg = f"No recorded traffic for test: {test_name}"
+                raise ValueError(msg)
+
+            log["rx"] = base64.b64decode(log["rx"])
+            log["tx"] = base64.b64decode(log["tx"])
 
     return log
 
@@ -200,12 +209,12 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         _pytest.outcomes.Failed
             If written data does not match recorded data.
         """
-        if list(data) == log["tx"][: len(data)]:
+        if data == log["tx"][: len(data)]:
             log["tx"] = log["tx"][len(data) :]
         else:
             msg = (
                 "Written data does not match recorded data: "
-                f"{list(data)} != {log['tx'][: len(data)]}"
+                f"{data!r} != {log['tx'][: len(data)]!r}"
             )
             pytest.fail(msg)
 
@@ -267,7 +276,7 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         Monkeypatch this method over Serial.write to record traffic. Parameters and
         return values are identical to Serial.write.
         """
-        log["tx"] += list(data)
+        log["tx"] += data
         written: int = real_write(self, data)
         return written
 
@@ -278,7 +287,7 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         return values are identical to Serial.read.
         """
         data: bytes = real_read(self, size)
-        log["rx"] += list(data)
+        log["rx"] += data
         return data
 
     return record_read, record_write, Serial.open, Serial.close
@@ -286,8 +295,8 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
 
 def write_log(
     log: TrafficLog,
-    logpath: Path,
-    testname: str,
+    log_path: Path,
+    test_name: str,
 ) -> None:
     """Write recorded traffic to log file.
 
@@ -295,29 +304,36 @@ def write_log(
     ----------
     log: dict[str, list[int]]
         Dictionary holding recorded traffic.
-    logpath: str
+    log_path: str
         The name of the file where recorded traffic is logged.
-    testname: str
+    test_name: str
         The name of the currently running test, which is used as a key in the log file.
     """
-    try:
-        # If the file exists, read its contents.
-        with Path.open(logpath) as logfile:
-            logs = json.load(logfile)
-    except FileNotFoundError:
-        logs = {}
+    # Make sure log file exists.
+    log_path.touch()
+    # Write new data to temporary file.
+    tmp_path = Path(test_name + "_" + hex(abs(hash(test_name))).lstrip("0x"))
 
-    logs[testname] = log
-    logs_str = json.dumps(logs, indent=4)
+    with log_path.open("r") as fin, tmp_path.open("w") as fout:
+        seen = False
+        rx = base64.b64encode(bytes(log["rx"])).decode("ascii")
+        tx = base64.b64encode(bytes(log["tx"])).decode("ascii")
+        new_line = json.dumps({test_name: {"rx": rx, "tx": tx}}) + "\n"
 
-    # Print traffic logs on a single line if jsbeautifier is available.
-    try:
-        import jsbeautifier  # type: ignore[import-untyped]
+        # Recorded traffic is stored as JSON Lines. Parse one line at a time.
+        for old_line in fin:
+            test_data = json.loads(old_line)
 
-        logs_str = jsbeautifier.beautify(logs_str)
-    except ImportError:
-        pass
+            # Each record contains a single key.
+            if test_name in test_data:
+                fout.write(new_line)
+                seen = True
+                continue
 
-    # Wipe the file if it exists, or create a new file if it doesn't.
-    with Path.open(logpath, mode="w") as logfile:
-        logfile.write(logs_str)
+            fout.write(old_line)
+
+        if not seen:
+            fout.write(new_line)
+
+    # Overwrite old log file.
+    Path(tmp_path).rename(log_path)
