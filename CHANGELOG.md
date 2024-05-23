@@ -2,6 +2,10 @@
 
 ## [0.4.1] - Development
 
+### Fixed
+
+- Only patch `_reconfigure_port` during replay ([`4907c09`](https://github.com/bessman/pytest-reserial/commit/4907c09a40883b8324213a1d70377a580d478952))
+
 ## [0.4.0] - 2024-05-22
 
 _This release changes the format for traffic log files. Use the provided `update_log.py`-script to update old logs to the new format._
