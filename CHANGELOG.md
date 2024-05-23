@@ -4,7 +4,7 @@
 
 ## [0.4.0] - 2024-05-22
 
-_This release changes the format for traffic log files. Use the provided `update_log.py`-script to update old logs to the new format.
+_This release changes the format for traffic log files. Use the provided `update_log.py`-script to update old logs to the new format._
 
 ### Changed
 
