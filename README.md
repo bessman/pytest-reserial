@@ -54,7 +54,7 @@ The logged traffic will be stored as JSON Lines, with one file per test file and
 │   ├── test_myproject.py
 ```
 
-Then after running `pytest --record`, the test/ directory will contain a new file, test_myproject.jsonl, containing the recorded serial traffic from the tests.
+Then after running `pytest --record`, the tests/ directory will contain a new file, test_myproject.jsonl, containing the recorded serial traffic from the tests.
 
 ## Why
 
