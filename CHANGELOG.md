@@ -1,6 +1,8 @@
 # Changelog
 
-## [0.4.1] - Development
+## [0.4.2] - Development
+
+## [0.4.1] - 2024-05-23
 
 ### Fixed
 
@@ -67,6 +69,7 @@ _Maintenance release._
 
 _Initial release._
 
+[0.4.1]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.1
 [0.4.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.0
 [0.3.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.3.0
 [0.2.4]: https://github.com/bessman/pytest-reserial/releases/tag/v0.2.4
