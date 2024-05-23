@@ -51,7 +51,6 @@ dev = [
     "ruff",
     "tox",
 ]
-jsbeautifier = ["jsbeautifier"]
 
 [tool.isort]
 profile = "black"
