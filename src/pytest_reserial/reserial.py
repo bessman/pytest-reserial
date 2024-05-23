@@ -13,10 +13,11 @@ from serial import Serial  # type: ignore[import-untyped]
 
 TrafficLog = Dict[Literal["rx", "tx"], bytes]
 PatchMethods = Tuple[
-    Callable[[Serial, int], bytes],
-    Callable[[Serial, bytes], int],
-    Callable[[Serial], None],
-    Callable[[Serial], None],
+    Callable[[Serial, int], bytes],  # read
+    Callable[[Serial, bytes], int],  # write
+    Callable[[Serial], None],  # open
+    Callable[[Serial], None],  # close
+    Callable[[Serial, bool], None],  # _reconfigure_port
 ]
 
 
@@ -45,18 +46,6 @@ class Mode(IntEnum):
     INVALID = 3
 
 
-def reconfigure_port_patch(
-    self: Serial,  # noqa: ARG001
-    force_update: bool = False,  # noqa: ARG001, FBT001, FBT002
-) -> None:
-    """Don't try to set parameters on the mocked port.
-
-    When changing settings such as timeout, parity, stop bits, etc. the
-    _reconfigure_port method is called. It operates directly on the underlying operating
-    system resource, which doesn't exist in reserial. Therefore, this patch is required.
-    """
-
-
 @pytest.fixture()
 def reserial(
     monkeypatch: pytest.MonkeyPatch,
@@ -77,7 +66,9 @@ def reserial(
     test_name = request.node.name
     log = get_traffic_log(mode, log_path, test_name)
 
-    read_patch, write_patch, open_patch, close_patch = get_patched_methods(mode, log)
+    read_patch, write_patch, open_patch, close_patch, reconfigure_port_patch = (
+        get_patched_methods(mode, log)
+    )
     monkeypatch.setattr(Serial, "read", read_patch)
     monkeypatch.setattr(Serial, "write", write_patch)
     monkeypatch.setattr(Serial, "open", open_patch)
@@ -172,7 +163,13 @@ def get_patched_methods(mode: Mode, log: TrafficLog) -> PatchMethods:
         return get_replay_methods(log)
     if mode == Mode.RECORD:
         return get_record_methods(log)
-    return Serial.read, Serial.write, Serial.open, Serial.close
+    return (
+        Serial.read,
+        Serial.write,
+        Serial.open,
+        Serial.close,
+        Serial._reconfigure_port,  # noqa: SLF001
+    )
 
 
 def get_replay_methods(log: TrafficLog) -> PatchMethods:
@@ -233,7 +230,7 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         log["rx"] = log["rx"][size:]
         return bytes(data)
 
-    return replay_read, replay_write, replay_open, replay_close
+    return replay_read, replay_write, replay_open, replay_close, replay_reconfigure_port
 
 
 # The open/close method patches don't need access to logs, so they can stay down here.
@@ -246,6 +243,18 @@ def replay_open(self: Serial) -> None:
 def replay_close(self: Serial) -> None:
     """Pretend that port was closed."""
     self.is_open = False
+
+
+def replay_reconfigure_port(
+    self: Serial,  # noqa: ARG001
+    force_update: bool = False,  # noqa: ARG001, FBT001, FBT002
+) -> None:
+    """Don't try to set parameters on the mocked port.
+
+    When changing settings such as timeout, parity, stop bits, etc. the
+    _reconfigure_port method is called. It operates directly on the underlying operating
+    system resource, which doesn't exist in reserial. Therefore, this patch is required.
+    """
 
 
 def get_record_methods(log: TrafficLog) -> PatchMethods:
@@ -290,7 +299,13 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         log["rx"] += data
         return data
 
-    return record_read, record_write, Serial.open, Serial.close
+    return (
+        record_read,
+        record_write,
+        Serial.open,
+        Serial.close,
+        Serial._reconfigure_port,  # noqa: SLF001
+    )
 
 
 def write_log(
