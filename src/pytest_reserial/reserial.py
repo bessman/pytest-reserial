@@ -18,6 +18,7 @@ PatchMethods = Tuple[
     Callable[[Serial], None],  # open
     Callable[[Serial], None],  # close
     Callable[[Serial, bool], None],  # _reconfigure_port
+    Callable[[Serial], int],  # in_waiting
 ]
 
 
@@ -66,14 +67,20 @@ def reserial(
     test_name = request.node.name
     log = get_traffic_log(mode, log_path, test_name)
 
-    read_patch, write_patch, open_patch, close_patch, reconfigure_port_patch = (
-        get_patched_methods(mode, log)
-    )
+    (
+        read_patch,
+        write_patch,
+        open_patch,
+        close_patch,
+        reconfigure_port_patch,
+        in_waiting_patch,
+    ) = get_patched_methods(mode, log)
     monkeypatch.setattr(Serial, "read", read_patch)
     monkeypatch.setattr(Serial, "write", write_patch)
     monkeypatch.setattr(Serial, "open", open_patch)
     monkeypatch.setattr(Serial, "close", close_patch)
     monkeypatch.setattr(Serial, "_reconfigure_port", reconfigure_port_patch)
+    monkeypatch.setattr(Serial, "in_waiting", in_waiting_patch)
 
     yield
 
@@ -136,7 +143,7 @@ def get_traffic_log(mode: Mode, log_path: Path, test_name: str) -> TrafficLog:
 
 
 def get_patched_methods(mode: Mode, log: TrafficLog) -> PatchMethods:
-    """Return patched read, write, open, and closed methods.
+    """Return patched read, write, open, etc methods.
 
     The methods should be monkeypatched over the corresponding `Serial` methods.
 
@@ -158,6 +165,10 @@ def get_patched_methods(mode: Mode, log: TrafficLog) -> PatchMethods:
         Monkeypatch this over `Serial.open`.
     close_patch: Callable[[Serial], None]
         Monkeypatch this over `Serial.close`.
+    _reconfigure_port_patch: Callable[[Serial, bool], None]
+        Monkeypatch this over `Serial._reconfigure_port`.
+    in_waiting_patch: Callable[[Serial], int]
+        Monkeypatch this over `Serial.in_waiting`.
     """
     if mode == Mode.REPLAY:
         return get_replay_methods(log)
@@ -169,11 +180,12 @@ def get_patched_methods(mode: Mode, log: TrafficLog) -> PatchMethods:
         Serial.open,
         Serial.close,
         Serial._reconfigure_port,  # noqa: SLF001
+        Serial.in_waiting,
     )
 
 
 def get_replay_methods(log: TrafficLog) -> PatchMethods:
-    """Return patched read, write, open, and close methods for replaying logged traffic.
+    """Return patched read, write, open, etc methods for replaying logged traffic.
 
     Parameters
     ----------
@@ -190,6 +202,11 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         Sets `Serial.is_open` to `True`.
     replay_close: Callable[[Serial], None]
         Sets `Serial.is_open` to `False`.
+    replay_reconfigure_port: Callable[[Serial, bool], None]
+        No-op
+    record_in_waiting: Callable[[Serial], int]
+        Return the number of bytes of RX traffic left to replay.
+
     """
 
     def replay_write(
@@ -236,7 +253,21 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         log["rx"] = log["rx"][size:]
         return bytes(data)
 
-    return replay_read, replay_write, replay_open, replay_close, replay_reconfigure_port
+    @property  # type: ignore[misc]
+    def replay_in_waiting(
+        self: Serial,  # noqa:ARG001
+    ) -> int:
+        """Return the number of bytes in RX data left to replay."""
+        return len(log["rx"])
+
+    return (
+        replay_read,
+        replay_write,
+        replay_open,
+        replay_close,
+        replay_reconfigure_port,
+        replay_in_waiting,
+    )
 
 
 # The open/close method patches don't need access to logs, so they can stay down here.
@@ -264,7 +295,7 @@ def replay_reconfigure_port(
 
 
 def get_record_methods(log: TrafficLog) -> PatchMethods:
-    """Return patched read, write, open, and close methods for recording traffic.
+    """Return patched read, write, open, etc methods for recording traffic.
 
     Parameters
     ----------
@@ -281,6 +312,12 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         Does not need to be patched when recording, so this is `Serial.open`.
     record_close: Callable[[Serial], None]
         Does not need to be patched when recording, so this is `Serial.close`.
+    record_reconfigure_port: Callable[[Serial, bool], None]
+        Does not need to be patched when recording,
+        so this is `Serial._reconfigure_port`.
+    record_in_waiting: Callable[[Serial], int]
+        Does not need to be patched when recording, so this is `Serial.in_waiting`.
+
     """
     real_read = Serial.read
     real_write = Serial.write
@@ -311,6 +348,7 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         Serial.open,
         Serial.close,
         Serial._reconfigure_port,  # noqa: SLF001
+        Serial.in_waiting,
     )
 
 
