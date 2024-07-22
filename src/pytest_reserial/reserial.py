@@ -210,7 +210,7 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
     """
 
     def replay_write(
-        self: Serial,  # noqa: ARG001
+        self: Serial,
         data: bytes,
     ) -> int:
         """Compare TX data to recording instead of writing to the bus.
@@ -238,7 +238,7 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         return len(data)
 
     def replay_read(
-        self: Serial,  # noqa: ARG001
+        self: Serial,
         size: int = 1,
     ) -> bytes:
         """Replay RX data from recording instead of reading from the bus.
