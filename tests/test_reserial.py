@@ -17,6 +17,24 @@ TEST_FILE = f"""
                 s.write({TEST_TX!r})
                 assert s.read() == {TEST_RX!r}
             """
+TEST_FILE_REPLAY = f"""
+            import pytest
+            import serial
+            def test_reserial(reserial):
+                s = serial.Serial(port="/dev/ttyUSB0")
+                s.write({TEST_TX!r})
+                assert s.read() == {TEST_RX!r}
+                s.close()
+                with pytest.raises(serial.PortNotOpenError):
+                    s.read()
+            def test_reserial2(reserial):
+                s = serial.Serial(port="/dev/ttyUSB0")
+                s.write({TEST_TX!r})
+                assert s.read() == {TEST_RX!r}
+                s.close()
+                with pytest.raises(serial.PortNotOpenError):
+                    s.write({TEST_TX!r})
+            """
 TEST_FILE_BAD_TX = f"""
                     import serial
                     def test_reserial(reserial):
@@ -108,7 +126,7 @@ def test_update_existing(monkeypatch, pytester):
 
 def test_replay(pytester):
     pytester.makefile(".jsonl", test_replay=TEST_JSONL)
-    pytester.makepyfile(TEST_FILE)
+    pytester.makepyfile(TEST_FILE_REPLAY)
     result = pytester.runpytest("--replay")
     assert result.ret == 0
 
