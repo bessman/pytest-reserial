@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Callable, Dict, Iterator, Literal, Tuple
 
 import pytest
-from serial import Serial  # type: ignore[import-untyped]
+from serial import PortNotOpenError, Serial  # type: ignore[import-untyped]
 
 TrafficLog = Dict[Literal["rx", "tx"], bytes]
 PatchMethods = Tuple[
@@ -206,6 +206,9 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         _pytest.outcomes.Failed
             If written data does not match recorded data.
         """
+        if not self.is_open:
+            raise PortNotOpenError
+
         if data == log["tx"][: len(data)]:
             log["tx"] = log["tx"][len(data) :]
         else:
@@ -226,6 +229,9 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         Monkeypatch this method over Serial.read to replay traffic. Parameters and
         return values are identical to Serial.read.
         """
+        if not self.is_open:
+            raise PortNotOpenError
+
         data = log["rx"][:size]
         log["rx"] = log["rx"][size:]
         return bytes(data)
