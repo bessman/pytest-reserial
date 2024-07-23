@@ -11,6 +11,7 @@ TEST_FILE = f"""
             def test_reserial(reserial):
                 s = serial.Serial(port="/dev/ttyUSB0")
                 s.write({TEST_TX!r})
+                assert s.in_waiting == {len(TEST_RX)}
                 assert s.read() == {TEST_RX!r}
             def test_reserial2(reserial):
                 s = serial.Serial(port="/dev/ttyUSB0")
@@ -23,7 +24,9 @@ TEST_FILE_REPLAY = f"""
             def test_reserial(reserial):
                 s = serial.Serial(port="/dev/ttyUSB0")
                 s.write({TEST_TX!r})
+                assert s.in_waiting == {len(TEST_RX)}
                 assert s.read() == {TEST_RX!r}
+                assert s.in_waiting == 0
                 s.close()
                 with pytest.raises(serial.PortNotOpenError):
                     s.read()
@@ -57,6 +60,10 @@ def test_record(monkeypatch, pytester):
     def patch_read(self: Serial, size: int = 1) -> bytes:
         return TEST_RX
 
+    @property
+    def patch_in_waiting(self: Serial) -> int:
+        return len(TEST_RX)
+
     def patch_open(self: Serial) -> None:
         self.is_open = True
 
@@ -67,6 +74,7 @@ def test_record(monkeypatch, pytester):
     monkeypatch.setattr(Serial, "read", patch_read)
     monkeypatch.setattr(Serial, "open", patch_open)
     monkeypatch.setattr(Serial, "close", patch_close)
+    monkeypatch.setattr(Serial, "in_waiting", patch_in_waiting)
     result = pytester.runpytest("--record")
 
     with open("test_record.jsonl", "r") as f:
