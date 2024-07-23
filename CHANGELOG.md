@@ -1,6 +1,13 @@
 # Changelog
 
-## [0.4.2] - Development
+## [0.4.3] - Development
+
+## [0.4.2] - 2024-07-23
+
+### Fixed
+
+- Raise `PortNotOpenError` on read/write from closed serial port ([`94c43b5`](https://github.com/bessman/pytest-reserial/commit/94c43b58c04adf1fd5f29d446acd976776874de1)) (Denis Patrikeev)
+- Patch `Serial.in_waiting` during replay ([`358e778`](https://github.com/bessman/pytest-reserial/commit/358e778c85c3ae3190c05710a2321faf4e20a603)) (Denis Patrikeev)
 
 ## [0.4.1] - 2024-05-23
 
@@ -69,6 +76,7 @@ _Maintenance release._
 
 _Initial release._
 
+[0.4.2]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.2
 [0.4.1]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.1
 [0.4.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.0
 [0.3.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.3.0
