@@ -6,13 +6,13 @@ import base64
 import json
 from enum import IntEnum
 from pathlib import Path
-from typing import Callable, Dict, Iterator, Literal, Tuple
+from typing import Callable, Iterator, Literal
 
 import pytest
 from serial import PortNotOpenError, Serial  # type: ignore[import-untyped]
 
-TrafficLog = Dict[Literal["rx", "tx"], bytes]
-PatchMethods = Tuple[
+TrafficLog = dict[Literal["rx", "tx"], bytes]
+PatchMethods = tuple[
     Callable[[Serial, int], bytes],  # read
     Callable[[Serial, bytes], int],  # write
     Callable[[Serial], None],  # open
