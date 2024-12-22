@@ -1,6 +1,20 @@
 # Changelog
 
-## [0.4.3] - Development
+## [0.4.4] - Development
+
+## [0.4.3] - 2024-12-22
+
+### Added
+
+- Add support for Python 3.13 ([`c28f520`](https://github.com/bessman/pytest-reserial/commit/c28f5201222528867eea0d9e7daae8abbbb06cc6))
+
+### Removed
+
+- Remove support for EOL Python 3.8 ([`c28f520`](https://github.com/bessman/pytest-reserial/commit/c28f5201222528867eea0d9e7daae8abbbb06cc6))
+
+### Fixed
+
+- Patch `Serial.reset_input_buffer` during replay ([`2115eff`](https://github.com/bessman/pytest-reserial/commit/2115eff037b5003174b1705123b89c1594176713))
 
 ## [0.4.2] - 2024-07-23
 
