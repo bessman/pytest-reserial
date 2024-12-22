@@ -90,6 +90,7 @@ _Maintenance release._
 
 _Initial release._
 
+[0.4.3]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.3
 [0.4.2]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.2
 [0.4.1]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.1
 [0.4.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.0
