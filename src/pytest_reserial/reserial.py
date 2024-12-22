@@ -19,6 +19,7 @@ PatchMethods = Tuple[
     Callable[[Serial], None],  # close
     Callable[[Serial, bool], None],  # _reconfigure_port
     Callable[[Serial], int],  # in_waiting
+    Callable[[Serial], None],  # reset_input_buffer
 ]
 
 
@@ -74,6 +75,7 @@ def reserial(
         close_patch,
         reconfigure_port_patch,
         in_waiting_patch,
+        reset_input_buffer,
     ) = get_patched_methods(mode, log)
     monkeypatch.setattr(Serial, "read", read_patch)
     monkeypatch.setattr(Serial, "write", write_patch)
@@ -81,6 +83,7 @@ def reserial(
     monkeypatch.setattr(Serial, "close", close_patch)
     monkeypatch.setattr(Serial, "_reconfigure_port", reconfigure_port_patch)
     monkeypatch.setattr(Serial, "in_waiting", in_waiting_patch)
+    monkeypatch.setattr(Serial, "reset_input_buffer", reset_input_buffer)
 
     yield
 
@@ -169,6 +172,8 @@ def get_patched_methods(mode: Mode, log: TrafficLog) -> PatchMethods:
         Monkeypatch this over `Serial._reconfigure_port`.
     in_waiting_patch: Callable[[Serial], int]
         Monkeypatch this over `Serial.in_waiting`.
+    reset_input_buffer_patch: Callable[[Serial], None]
+        Monkeypatch this over `Serial.reset_input_buffer`.
     """
     if mode == Mode.REPLAY:
         return get_replay_methods(log)
@@ -181,6 +186,7 @@ def get_patched_methods(mode: Mode, log: TrafficLog) -> PatchMethods:
         Serial.close,
         Serial._reconfigure_port,  # noqa: SLF001
         Serial.in_waiting,
+        Serial.reset_input_buffer,
     )
 
 
@@ -267,10 +273,11 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         replay_close,
         replay_reconfigure_port,
         replay_in_waiting,
+        replay_reset_input_buffer,
     )
 
 
-# The open/close method patches don't need access to logs, so they can stay down here.
+# These patches don't need access to logs, so they can stay down here.
 def replay_open(self: Serial) -> None:
     """Pretend that port was opened."""
     self.is_open = True
@@ -292,6 +299,10 @@ def replay_reconfigure_port(
     _reconfigure_port method is called. It operates directly on the underlying operating
     system resource, which doesn't exist in reserial. Therefore, this patch is required.
     """
+
+
+def replay_reset_input_buffer(self: Serial) -> None:  # noqa:ARG001
+    """Pretend to flush input buffer."""
 
 
 def get_record_methods(log: TrafficLog) -> PatchMethods:
@@ -349,6 +360,7 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         Serial.close,
         Serial._reconfigure_port,  # noqa: SLF001
         Serial.in_waiting,
+        Serial.reset_input_buffer,
     )
 
 
