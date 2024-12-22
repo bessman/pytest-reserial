@@ -66,8 +66,6 @@ ignore = [
     "G004",  # logging-f-string
     "N818",  # error-suffix-on-exception-name
     "S101",  # assert
-    "ANN101",  # missing-type-self
-    "PT004",  # pytest-missing-fixture-name-underscore
 ]
 
 [tool.ruff.lint.pydocstyle]

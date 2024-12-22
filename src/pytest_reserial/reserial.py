@@ -6,10 +6,13 @@ import base64
 import json
 from enum import IntEnum
 from pathlib import Path
-from typing import Callable, Iterator, Literal
+from typing import TYPE_CHECKING, Callable, Literal
 
 import pytest
 from serial import PortNotOpenError, Serial  # type: ignore[import-untyped]
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 TrafficLog = dict[Literal["rx", "tx"], bytes]
 PatchMethods = tuple[
@@ -48,7 +51,7 @@ class Mode(IntEnum):
     INVALID = 3
 
 
-@pytest.fixture()
+@pytest.fixture
 def reserial(
     monkeypatch: pytest.MonkeyPatch,
     request: pytest.FixtureRequest,
@@ -290,8 +293,8 @@ def replay_close(self: Serial) -> None:
 
 
 def replay_reconfigure_port(
-    self: Serial,  # noqa: ARG001
-    force_update: bool = False,  # noqa: ARG001, FBT001, FBT002
+    self: Serial,
+    force_update: bool = False,  # noqa: FBT001, FBT002
 ) -> None:
     """Don't try to set parameters on the mocked port.
 
@@ -301,7 +304,7 @@ def replay_reconfigure_port(
     """
 
 
-def replay_reset_input_buffer(self: Serial) -> None:  # noqa:ARG001
+def replay_reset_input_buffer(self: Serial) -> None:
     """Pretend to flush input buffer."""
 
 
