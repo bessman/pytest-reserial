@@ -2,6 +2,9 @@
 
 ![build](https://github.com/bessman/pytest-reserial/actions/workflows/main.yml/badge.svg)
 [![PyPI](https://img.shields.io/pypi/v/pytest-reserial.svg)](https://pypi.org/project/pytest-reserial/)
+[![Downloads](https://pepy.tech/badge/pytest-reserial)](https://pepy.tech/project/pytest-reserial)
+[![Python Versions](https://img.shields.io/pypi/pyversions/pytest-reserial.svg)](https://pypi.org/project/pytest-reserial/)
+[![OpenIssues](https://isitmaintained.com/badge/open/bessman/pytest-reserial.svg)](https://isitmaintained.com/project/bessman/pytest-reserial)
 [![License](https://img.shields.io/pypi/l/pytest-reserial)](https://mit-license.org/)
 
 Pytest plugin for recording and replaying serial port traffic during tests.
