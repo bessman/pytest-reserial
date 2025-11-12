@@ -1,6 +1,6 @@
 # pytest-reserial
 
-![build](https://github.com/bessman/pytest-reserial/actions/workflows/main.yml/badge.svg)
+![build](https://github.com/bessman/pytest-reserial/actions/workflows/main.yml/badge.svg?branch=main)
 [![PyPI](https://img.shields.io/pypi/v/pytest-reserial.svg)](https://pypi.org/project/pytest-reserial/)
 [![Downloads](https://pepy.tech/badge/pytest-reserial)](https://pepy.tech/project/pytest-reserial)
 [![Python Versions](https://img.shields.io/pypi/pyversions/pytest-reserial.svg)](https://pypi.org/project/pytest-reserial/)
