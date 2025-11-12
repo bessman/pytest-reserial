@@ -135,7 +135,7 @@ def test_update_existing(monkeypatch, pytester):
 def test_replay(pytester):
     pytester.makefile(".jsonl", test_replay=TEST_JSONL)
     pytester.makepyfile(TEST_FILE_REPLAY)
-    result = pytester.runpytest("--replay")
+    result = pytester.runpytest()
     assert result.ret == 0
 
 
@@ -148,20 +148,20 @@ def test_dont_patch(pytester):
             assert Serial.read == real_read
         """
     )
-    result = pytester.runpytest()
+    result = pytester.runpytest("--disable-reserial")
     assert result.ret == 0
 
 
 def test_invalid_option(pytester):
     pytester.makepyfile(TEST_FILE)
-    result = pytester.runpytest("--replay", "--record")
+    result = pytester.runpytest("--disable-reserial", "--record")
     result.assert_outcomes(errors=2)
 
 
 def test_bad_tx(pytester):
     pytester.makefile(".jsonl", test_bad_tx=TEST_JSONL)
     pytester.makepyfile(TEST_FILE_BAD_TX)
-    result = pytester.runpytest("--replay")
+    result = pytester.runpytest()
     result.assert_outcomes(errors=1, failed=1)
 
 
@@ -171,7 +171,7 @@ def test_help_message(pytester):
         [
             "reserial:",
             "*--record * Record serial traffic.",
-            "*--replay * Replay serial traffic.",
+            "*--disable-reserial * Disable reserial to allow standard interaction with the serial port.",
         ]
     )
     assert result.ret == 0
@@ -190,7 +190,7 @@ def test_change_settings(pytester):
                 s.timeout = 1
         """
     )
-    result = pytester.runpytest("--replay")
+    result = pytester.runpytest()
     assert result.ret == 0
 
 
@@ -203,5 +203,5 @@ def test_no_traffic_for_test(pytester):
                 pass
         """
     )
-    result = pytester.runpytest("--replay")
+    result = pytester.runpytest()
     result.assert_outcomes(errors=1)

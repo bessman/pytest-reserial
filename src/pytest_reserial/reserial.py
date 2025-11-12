@@ -35,18 +35,18 @@ def pytest_addoption(parser: pytest.Parser) -> None:  # noqa: D103
         help="Record serial traffic.",
     )
     group.addoption(
-        "--replay",
+        "--disable-reserial",
         action="store_true",
         default=False,
-        help="Replay serial traffic.",
+        help="Disable reserial to allow standard interaction with the serial port.",
     )
 
 
 class Mode(IntEnum):
-    """Mode of operation, selected by the 'replay' and 'record' flags to pytest."""
+    """Mode of operation, selected by the 'disable-reserial' and 'record' flags to pytest."""
 
-    DONT_PATCH = 0
-    REPLAY = 1
+    REPLAY = 0
+    DONT_PATCH = 1
     RECORD = 2
     INVALID = 3
 
@@ -64,7 +64,7 @@ def reserial(
         If less data than expected was read or written during replay.
     """
     record = request.config.getoption("--record")
-    replay = request.config.getoption("--replay")
+    replay = request.config.getoption("--disable-reserial")
     mode = Mode(replay | record << 1)
 
     log_path = Path(request.path).parent / (Path(request.path).stem + ".jsonl")
