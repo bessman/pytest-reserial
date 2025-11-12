@@ -2,6 +2,10 @@
 
 ## [0.4.4] - Development
 
+### Added
+
+- Add support for Python 3.14
+
 ### Changed
 
 - __Breaking__: Default behavior with no command line arguments is to replay recorded communication.
