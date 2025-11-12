@@ -12,12 +12,12 @@ Pytest plugin for recording and replaying serial port traffic during tests.
 
 ## Usage
 
-1.  Write your tests as if they would run with the device connected.
+1.  Write your tests as if they would run with the device connected. While you iterate you can use `pytest --disable-reserial` to have your code interact with the device without any side effects.
 
 2.  When your tests pass with the device connected, run `pytest --record` to record serial traffic 
     from the passing tests.
 
-3.  Now you can disconnect the device and run your tests with `pytest --replay`.
+3.  Now you can disconnect the device and run your tests with `pytest`.
 
 A simple example:
 
@@ -39,10 +39,10 @@ def test_my_serial_app(reserial):
 Next:
 
 1.  Connect the device.
-2.  Run `pytest my_serial_app.py` and verify that the test passes with the device connected.
+2.  Run `pytest my_serial_app.py --disable-reserial` and verify that the test passes with the device connected.
 3.  Run `pytest --record my_serial_app.py`. The test will run again, and the traffic will be recorded.
 4.  Disconnect the device.
-5.  Run `pytest --replay my_serial_app.py`. The test will pass!
+5.  Run `pytest my_serial_app.py`. The test will pass!
 
 The logged traffic will be stored as JSON Lines, with one file per test file and one line per test, in the same directory as your test files. The files will have the same names as the test files except with a .jsonl extension instead of .py. For example, if your project layout is:
 
