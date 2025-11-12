@@ -171,7 +171,7 @@ def test_help_message(pytester):
         [
             "reserial:",
             "*--record * Record serial traffic.",
-            "*--disable-reserial * Disable reserial to allow standard interaction with the serial port.",
+            "*--disable-reserial * Disable reserial to allow standard", # the rest of the help text is wrapped into the next line in CI sometimes
         ]
     )
     assert result.ret == 0
