@@ -43,7 +43,10 @@ def pytest_addoption(parser: pytest.Parser) -> None:  # noqa: D103
 
 
 class Mode(IntEnum):
-    """Mode of operation, selected by the 'disable-reserial' and 'record' flags to pytest."""
+    """Mode of operation.
+
+    Selected by the 'disable-reserial' and 'record' flags to pytest.
+    """
 
     REPLAY = 0
     DONT_PATCH = 1
@@ -64,8 +67,8 @@ def reserial(
         If less data than expected was read or written during replay.
     """
     record = request.config.getoption("--record")
-    replay = request.config.getoption("--disable-reserial")
-    mode = Mode(replay | record << 1)
+    disable = request.config.getoption("--disable-reserial")
+    mode = Mode(disable | record << 1)
 
     log_path = Path(request.path).parent / (Path(request.path).stem + ".jsonl")
     test_name = request.node.name
