@@ -75,3 +75,7 @@ target/
 
 # Spyder
 .spyproject
+
+# linting caches
+.mypy_cache/
+.ruff_cache/
