@@ -1,14 +1,16 @@
 # Changelog
 
-## [0.4.4] - Development
+## [0.5.1] - Development
+
+## [0.5.0] - 2025-11-17
 
 ### Added
 
-- Add support for Python 3.14
+- Add support for Python 3.14 ([`f46ea47`](https://github.com/bessman/pytest-reserial/commit/f46ea47a3eb8169306df7772906535a4f3aaff0f)) (Eli Fine)
 
 ### Changed
 
-- __Breaking__: Default behavior with no command line arguments is to replay recorded communication.
+- __Breaking__: Default behavior with no command line arguments is to replay recorded communication ([`f46ea47`](https://github.com/bessman/pytest-reserial/commit/f46ea47a3eb8169306df7772906535a4f3aaff0f)) (Eli Fine)
 
 ## [0.4.3] - 2024-12-22
 
@@ -98,6 +100,7 @@ _Maintenance release._
 
 _Initial release._
 
+[0.5.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.5.0
 [0.4.3]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.3
 [0.4.2]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.2
 [0.4.1]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.1
