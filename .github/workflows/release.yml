@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  pypi-publish:
+    runs-on: ubuntu-latest
+
+    environment: pypi
+
+    permissions:
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: build wheel and sdist
+        run: |
+          pip install flit
+          flit build
+
+      - name: publish
+        uses: pypa/gh-action-pypi-publish@release/v1
