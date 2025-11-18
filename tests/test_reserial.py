@@ -181,7 +181,10 @@ def test_replay(pytester):
 
 @pytest.mark.parametrize(
     "serial_module",
-    [pytest.param("serial", id="main library"), pytest.param("serial.rfc2217", id="RFC2217 connection")],
+    [
+        pytest.param("serial", id="main library"),
+        pytest.param("serial.rfc2217", id="RFC2217 connection"),
+    ],
 )
 def test_dont_patch(serial_module: str, pytester):
     pytester.makepyfile(
