@@ -10,8 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
 import pytest
-from serial import PortNotOpenError  # type: ignore[import-untyped]
-from serial import Serial
+from serial import PortNotOpenError, Serial  # type: ignore[import-untyped]
 from serial.rfc2217 import Serial as RFC2217Serial  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
@@ -111,7 +110,11 @@ def reserial(
         return
 
     if log["rx"] or log["tx"]:
-        msg = f"Some messages where not replayed:}}\nRemaining RX: {len(log['rx'])}\nRemaining TX: {len(log['tx'])}"
+        msg = (
+            "Some messages were not replayed:}\n"
+            f"Remaining RX: {len(log['rx'])}\n"
+            f"Remaining TX: {len(log['tx'])}"
+        )
         pytest.fail(msg)
 
 
@@ -240,7 +243,10 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         if data == log["tx"][: len(data)]:
             log["tx"] = log["tx"][len(data) :]
         else:
-            msg = f"Written data does not match recorded data: {data!r} != {log['tx'][: len(data)]!r}"
+            msg = (
+                "Written data does not match recorded data: "
+                f"{data!r} != {log['tx'][: len(data)]!r}"
+            )
             pytest.fail(msg)
 
         return len(data)
