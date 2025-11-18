@@ -192,11 +192,25 @@ def test_update_existing(serial_init: str, SerialClass, monkeypatch, pytester):
         ),
     ],
 )
-def test_replay(serial_init: str, pytester):
-    pytester.makefile(".jsonl", test_replay=TEST_JSONL)
-    pytester.makepyfile(make_file_replay(serial_init))
-    result = pytester.runpytest()
-    assert result.ret == 0
+class TestSerialInit:
+    """Tests parametrized by serial_init only."""
+
+    def test_replay(self, serial_init: str, pytester):
+        pytester.makefile(".jsonl", test_replay=TEST_JSONL)
+        pytester.makepyfile(make_file_replay(serial_init))
+        result = pytester.runpytest()
+        assert result.ret == 0
+
+    def test_invalid_option(self, serial_init: str, pytester):
+        pytester.makepyfile(make_test_file(serial_init))
+        result = pytester.runpytest("--disable-reserial", "--record")
+        result.assert_outcomes(errors=2)
+
+    def test_bad_tx(self, serial_init: str, pytester):
+        pytester.makefile(".jsonl", test_bad_tx=TEST_JSONL)
+        pytester.makepyfile(make_file_bad(serial_init))
+        result = pytester.runpytest()
+        result.assert_outcomes(errors=1, failed=1)
 
 
 @pytest.mark.parametrize(
@@ -217,37 +231,6 @@ def test_dont_patch(serial_module: str, pytester):
     )
     result = pytester.runpytest("--disable-reserial")
     assert result.ret == 0
-
-
-@pytest.mark.parametrize(
-    "serial_init",
-    [
-        pytest.param(STANDARD_SERIAL_CONNECTION_INIT, id="standard serial connection"),
-        pytest.param(
-            SERIAL_FOR_URL_INIT, id="serial_for_url connection to RFC2217 server"
-        ),
-    ],
-)
-def test_invalid_option(serial_init: str, pytester):
-    pytester.makepyfile(make_test_file(serial_init))
-    result = pytester.runpytest("--disable-reserial", "--record")
-    result.assert_outcomes(errors=2)
-
-
-@pytest.mark.parametrize(
-    "serial_init",
-    [
-        pytest.param(STANDARD_SERIAL_CONNECTION_INIT, id="standard serial connection"),
-        pytest.param(
-            SERIAL_FOR_URL_INIT, id="serial_for_url connection to RFC2217 server"
-        ),
-    ],
-)
-def test_bad_tx(serial_init: str, pytester):
-    pytester.makefile(".jsonl", test_bad_tx=TEST_JSONL)
-    pytester.makepyfile(make_file_bad(serial_init))
-    result = pytester.runpytest()
-    result.assert_outcomes(errors=1, failed=1)
 
 
 def test_help_message(pytester):
