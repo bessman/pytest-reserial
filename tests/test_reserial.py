@@ -81,22 +81,22 @@ TEST_JSONL = (
 
 
 @pytest.mark.parametrize(
-    ("test_file", "SerialClass"),
+    ("serial_init", "SerialClass"),
     [
         pytest.param(
-            make_test_file(STANDARD_SERIAL_CONNECTION_INIT),
+            STANDARD_SERIAL_CONNECTION_INIT,
             Serial,
             id="standard serial connection",
         ),
         pytest.param(
-            make_test_file(SERIAL_FOR_URL_INIT),
+            SERIAL_FOR_URL_INIT,
             RFC2217Serial,
             id="serial_for_url connection to RFC2217 server",
         ),
     ],
 )
-def test_record(test_file: str, SerialClass, monkeypatch, pytester):
-    pytester.makepyfile(test_file)
+def test_record(serial_init: str, SerialClass, monkeypatch, pytester):
+    pytester.makepyfile(make_test_file(serial_init))
 
     def patch_write(self: SerialClass, data: bytes) -> int:
         return len(data)
