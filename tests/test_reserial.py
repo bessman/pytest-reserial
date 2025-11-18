@@ -50,10 +50,13 @@ def make_file_replay(serial_init:str)->str:
                 with pytest.raises(serial.PortNotOpenError):
                     s.write({TEST_TX!r})
             """
-TEST_FILE_BAD_TX = f"""
+
+def make_file_bad(serial_init: str) -> str:
+    return f"""
                     import serial
+                    from serial import serial_for_url
                     def test_reserial(reserial):
-                        s = serial.Serial(port="/dev/ttyUSB0")
+                        s = {serial_init}
                         s.write({TEST_RX!r})
                         assert s.read() == {TEST_RX!r}
                     """
@@ -227,10 +230,18 @@ def test_invalid_option(serial_init: str, pytester):
     result = pytester.runpytest("--disable-reserial", "--record")
     result.assert_outcomes(errors=2)
 
-
-def test_bad_tx(pytester):
+@pytest.mark.parametrize(
+    "serial_init",
+    [
+        pytest.param(STANDARD_SERIAL_CONNECTION_INIT, id="standard serial connection"),
+        pytest.param(
+            SERIAL_FOR_URL_INIT, id="serial_for_url connection to RFC2217 server"
+        ),
+    ],
+)
+def test_bad_tx(serial_init:str, pytester):
     pytester.makefile(".jsonl", test_bad_tx=TEST_JSONL)
-    pytester.makepyfile(TEST_FILE_BAD_TX)
+    pytester.makepyfile(make_file_bad(serial_init))
     result = pytester.runpytest()
     result.assert_outcomes(errors=1, failed=1)
 
