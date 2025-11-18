@@ -28,11 +28,13 @@ def make_test_file(serial_init: str) -> str:
             """
 
 
-TEST_FILE_REPLAY = f"""
+def make_file_replay(serial_init:str)->str:
+    return f"""
             import pytest
             import serial
+            from serial import serial_for_url
             def test_reserial(reserial):
-                s = serial.Serial(port="/dev/ttyUSB0")
+                s = {serial_init}
                 s.write({TEST_TX!r})
                 assert s.in_waiting == {len(TEST_RX)}
                 assert s.read() == {TEST_RX!r}
@@ -41,7 +43,7 @@ TEST_FILE_REPLAY = f"""
                 with pytest.raises(serial.PortNotOpenError):
                     s.read()
             def test_reserial2(reserial):
-                s = serial.Serial(port="/dev/ttyUSB0")
+                s = {serial_init}
                 s.write({TEST_TX!r})
                 assert s.read() == {TEST_RX!r}
                 s.close()
@@ -175,10 +177,18 @@ def test_update_existing(test_file: str, SerialClass, monkeypatch, pytester):
     assert recording == expected
     assert result.ret == 0
 
-
-def test_replay(pytester):
+@pytest.mark.parametrize(
+    "serial_init",
+    [
+        pytest.param(STANDARD_SERIAL_CONNECTION_INIT, id="standard serial connection"),
+        pytest.param(
+            SERIAL_FOR_URL_INIT, id="serial_for_url connection to RFC2217 server"
+        ),
+    ],
+)
+def test_replay(serial_init: str, pytester):
     pytester.makefile(".jsonl", test_replay=TEST_JSONL)
-    pytester.makepyfile(TEST_FILE_REPLAY)
+    pytester.makepyfile(make_file_replay(serial_init))
     result = pytester.runpytest()
     assert result.ret == 0
 
