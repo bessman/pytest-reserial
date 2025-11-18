@@ -8,30 +8,26 @@ TEST_RX = b"\x01"
 TEST_RX_ENC = "AQ=="
 TEST_TX = b"\x02"
 TEST_TX_ENC = "Ag=="
-TEST_FILE = f"""
+STANDARD_SERIAL_CONNECTION_INIT = 'serial.Serial(port="/dev/ttyUSB0")'
+SERIAL_FOR_URL_INIT = 'serial_for_url("rfc2217://127.0.0.1:8080")'
+
+
+def make_test_file(serial_init: str) -> str:
+    return f"""
             import serial
-            def test_reserial(reserial):
-                s = serial.Serial(port="/dev/ttyUSB0")
-                s.write({TEST_TX!r})
-                assert s.in_waiting == {len(TEST_RX)}
-                assert s.read() == {TEST_RX!r}
-            def test_reserial2(reserial):
-                s = serial.Serial(port="/dev/ttyUSB0")
-                s.write({TEST_TX!r})
-                assert s.read() == {TEST_RX!r}
-            """
-TEST_FILE_RFC2217 = f"""
             from serial import serial_for_url
             def test_reserial(reserial):
-                s = serial_for_url("rfc2217://127.0.0.1:8080")
+                s = {serial_init}
                 s.write({TEST_TX!r})
                 assert s.in_waiting == {len(TEST_RX)}
                 assert s.read() == {TEST_RX!r}
             def test_reserial2(reserial):
-                s = serial_for_url("rfc2217://127.0.0.1:8080")
+                s = {serial_init}
                 s.write({TEST_TX!r})
                 assert s.read() == {TEST_RX!r}
             """
+
+
 TEST_FILE_REPLAY = f"""
             import pytest
             import serial
@@ -68,8 +64,16 @@ TEST_JSONL = (
 @pytest.mark.parametrize(
     ("test_file", "SerialClass"),
     [
-        pytest.param(TEST_FILE, Serial, id="standard serial connection"),
-        pytest.param(TEST_FILE_RFC2217, RFC2217Serial, id="standard serial connection"),
+        pytest.param(
+            make_test_file(STANDARD_SERIAL_CONNECTION_INIT),
+            Serial,
+            id="standard serial connection",
+        ),
+        pytest.param(
+            make_test_file(SERIAL_FOR_URL_INIT),
+            RFC2217Serial,
+            id="serial_for_url connection to RFC2217 server",
+        ),
     ],
 )
 def test_record(test_file: str, SerialClass, monkeypatch, pytester):
@@ -199,8 +203,17 @@ def test_dont_patch(serial_module: str, pytester):
     assert result.ret == 0
 
 
-def test_invalid_option(pytester):
-    pytester.makepyfile(TEST_FILE)
+@pytest.mark.parametrize(
+    "serial_init",
+    [
+        pytest.param(STANDARD_SERIAL_CONNECTION_INIT, id="standard serial connection"),
+        pytest.param(
+            SERIAL_FOR_URL_INIT, id="serial_for_url connection to RFC2217 server"
+        ),
+    ],
+)
+def test_invalid_option(serial_init: str, pytester):
+    pytester.makepyfile(make_test_file(serial_init))
     result = pytester.runpytest("--disable-reserial", "--record")
     result.assert_outcomes(errors=2)
 
