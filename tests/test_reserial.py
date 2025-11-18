@@ -54,14 +54,23 @@ def make_file_replay(serial_init: str) -> str:
 
 def make_file_bad(serial_init: str) -> str:
     return f"""
-                    import serial
-                    from serial import serial_for_url
-                    def test_reserial(reserial):
-                        s = {serial_init}
-                        s.write({TEST_RX!r})
-                        assert s.read() == {TEST_RX!r}
-                    """
+            import serial
+            from serial import serial_for_url
+            def test_reserial(reserial):
+                s = {serial_init}
+                s.write({TEST_RX!r})
+                assert s.read() == {TEST_RX!r}
+            """
 
+def make_file_update_existing(serial_init: str) -> str:
+    return f"""
+            import serial
+            from serial import serial_for_url
+            def test_reserial(reserial):
+                s = {serial_init}
+                s.write({2 * TEST_TX})
+                assert s.read() == {2 * TEST_RX}
+                """
 
 TEST_JSONL = (
     f'{{"test_reserial": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_ENC}"}}}}\n'
@@ -120,35 +129,24 @@ def test_record(test_file: str, SerialClass, monkeypatch, pytester):
 
 
 @pytest.mark.parametrize(
-    ("test_file", "SerialClass"),
+    ("serial_init", "SerialClass"),
     [
         pytest.param(
-            f"""
-        import serial
-        def test_reserial(reserial):
-            s = serial.Serial(port="/dev/ttyUSB0")
-            s.write({2 * TEST_TX})
-            assert s.read() == {2 * TEST_RX}
-        """,
+            STANDARD_SERIAL_CONNECTION_INIT,
             Serial,
             id="standard serial connection",
         ),
         pytest.param(
-            f"""
-        from serial import serial_for_url
-        def test_reserial(reserial):
-            s = serial_for_url("rfc2217://localhost:1234")
-            s.write({2 * TEST_TX})
-            assert s.read() == {2 * TEST_RX}
-        """,
+            SERIAL_FOR_URL_INIT,
+    
             RFC2217Serial,
             id="standard serial connection",
         ),
     ],
 )
-def test_update_existing(test_file: str, SerialClass, monkeypatch, pytester):
+def test_update_existing(serial_init: str, SerialClass, monkeypatch, pytester):
     pytester.makefile(".jsonl", test_update_existing=TEST_JSONL)
-    pytester.makepyfile(test_file)
+    pytester.makepyfile(make_file_update_existing(serial_init))
 
     def patch_write(self: SerialClass, data: bytes) -> int:
         return len(data)
