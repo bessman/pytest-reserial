@@ -8,8 +8,9 @@ from enum import IntEnum
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Literal
 
-import pytest
+import pytest,functools
 from serial import PortNotOpenError, Serial  # type: ignore[import-untyped]
+from serial.rfc2217 import Serial as RFC2217Serial 
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -73,23 +74,23 @@ def reserial(
     log_path = Path(request.path).parent / (Path(request.path).stem + ".jsonl")
     test_name = request.node.name
     log = get_traffic_log(mode, log_path, test_name)
-
-    (
-        read_patch,
-        write_patch,
-        open_patch,
-        close_patch,
-        reconfigure_port_patch,
-        in_waiting_patch,
-        reset_input_buffer,
-    ) = get_patched_methods(mode, log)
-    monkeypatch.setattr(Serial, "read", read_patch)
-    monkeypatch.setattr(Serial, "write", write_patch)
-    monkeypatch.setattr(Serial, "open", open_patch)
-    monkeypatch.setattr(Serial, "close", close_patch)
-    monkeypatch.setattr(Serial, "_reconfigure_port", reconfigure_port_patch)
-    monkeypatch.setattr(Serial, "in_waiting", in_waiting_patch)
-    monkeypatch.setattr(Serial, "reset_input_buffer", reset_input_buffer)
+    if mode != Mode.DONT_PATCH:
+        for SerialClass, (
+            read_patch,
+            write_patch,
+            open_patch,
+            close_patch,
+            reconfigure_port_patch,
+            in_waiting_patch,
+            reset_input_buffer,
+        ) in get_patched_methods(mode, log).items():
+            monkeypatch.setattr(SerialClass, "read", read_patch)
+            monkeypatch.setattr(SerialClass, "write", write_patch)
+            monkeypatch.setattr(SerialClass, "open", open_patch)
+            monkeypatch.setattr(SerialClass, "close", close_patch)
+            monkeypatch.setattr(SerialClass, "_reconfigure_port", reconfigure_port_patch)
+            monkeypatch.setattr(SerialClass, "in_waiting", in_waiting_patch)
+            monkeypatch.setattr(SerialClass, "reset_input_buffer", reset_input_buffer)
 
     yield
 
@@ -183,18 +184,8 @@ def get_patched_methods(mode: Mode, log: TrafficLog) -> PatchMethods:
     """
     if mode == Mode.REPLAY:
         return get_replay_methods(log)
-    if mode == Mode.RECORD:
-        return get_record_methods(log)
-    return (
-        Serial.read,
-        Serial.write,
-        Serial.open,
-        Serial.close,
-        Serial._reconfigure_port,  # noqa: SLF001
-        Serial.in_waiting,
-        Serial.reset_input_buffer,
-    )
-
+    return get_record_methods(log)
+    
 
 def get_replay_methods(log: TrafficLog) -> PatchMethods:
     """Return patched read, write, open, etc methods for replaying logged traffic.
@@ -272,7 +263,7 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         """Return the number of bytes in RX data left to replay."""
         return len(log["rx"])
 
-    return (
+    return {Serial:(
         replay_read,
         replay_write,
         replay_open,
@@ -280,7 +271,15 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         replay_reconfigure_port,
         replay_in_waiting,
         replay_reset_input_buffer,
-    )
+    ),RFC2217Serial:(
+        replay_read,
+        replay_write,
+        replay_open,
+        replay_close,
+        replay_reconfigure_port,
+        replay_in_waiting,
+        replay_reset_input_buffer,
+    )}
 
 
 # These patches don't need access to logs, so they can stay down here.
@@ -338,6 +337,8 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
     """
     real_read = Serial.read
     real_write = Serial.write
+    real_rfc2217_read = RFC2217Serial.read
+    real_rfc2217_write = RFC2217Serial.write
 
     def record_write(self: Serial, data: bytes) -> int:
         """Record TX data before writing to the bus.
@@ -358,8 +359,27 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         data: bytes = real_read(self, size)
         log["rx"] += data
         return data
+    def record_rfc2217_read(self: RFC2217Serial, size: int = 1) -> bytes:
+        """Record RX data after reading from the bus.
 
-    return (
+        Monkeypatch this method over RFC2217Serial.read to record traffic. Parameters and
+        return values are identical to RFC2217Serial.read.
+        """
+        data: bytes = real_rfc2217_read(self, size)
+        log["rx"] += data
+        return data
+
+    def record_rfc2217_write(self: RFC2217Serial, data: bytes) -> int:
+        """Record TX data before writing to the bus.
+
+        Monkeypatch this method over RFC2217Serial.write to record traffic. Parameters and
+        return values are identical to RFC2217Serial.write.
+        """
+        log["tx"] += data
+        written: int = real_rfc2217_write(self, data)
+        return written
+
+    return {Serial:(
         record_read,
         record_write,
         Serial.open,
@@ -367,7 +387,15 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         Serial._reconfigure_port,  # noqa: SLF001
         Serial.in_waiting,
         Serial.reset_input_buffer,
-    )
+    ),RFC2217Serial:(
+        record_rfc2217_read,
+        record_rfc2217_write,
+        RFC2217Serial.open,
+        RFC2217Serial.close,
+        RFC2217Serial._reconfigure_port,  # noqa: SLF001
+        RFC2217Serial.in_waiting,
+        RFC2217Serial.reset_input_buffer,
+    )}
 
 
 def write_log(

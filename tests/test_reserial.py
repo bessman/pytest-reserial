@@ -2,7 +2,7 @@ import json
 
 import pytest
 from serial import Serial
-
+from serial.rfc2217 import Serial as RFC2217Serial
 TEST_RX = b"\x01"
 TEST_RX_ENC = "AQ=="
 TEST_TX = b"\x02"
@@ -16,6 +16,18 @@ TEST_FILE = f"""
                 assert s.read() == {TEST_RX!r}
             def test_reserial2(reserial):
                 s = serial.Serial(port="/dev/ttyUSB0")
+                s.write({TEST_TX!r})
+                assert s.read() == {TEST_RX!r}
+            """
+TEST_FILE_RFC2217 = f"""
+            from serial import serial_for_url
+            def test_reserial(reserial):
+                s = serial_for_url("rfc2217://127.0.0.1:8080")
+                s.write({TEST_TX!r})
+                assert s.in_waiting == {len(TEST_RX)}
+                assert s.read() == {TEST_RX!r}
+            def test_reserial2(reserial):
+                s = serial_for_url("rfc2217://127.0.0.1:8080")
                 s.write({TEST_TX!r})
                 assert s.read() == {TEST_RX!r}
             """
@@ -52,34 +64,39 @@ TEST_JSONL = (
 )
 
 
-def test_record(monkeypatch, pytester):
-    pytester.makepyfile(TEST_FILE)
+@pytest.mark.parametrize(
+    ("test_file", "SerialClass"), [pytest.param(TEST_FILE, Serial, id="standard serial connection"),
+                                   pytest.param(TEST_FILE_RFC2217, RFC2217Serial, id="standard serial connection")
+                                   ]
+)
+def test_record(test_file: str, SerialClass, monkeypatch, pytester):
+    pytester.makepyfile(test_file)
 
-    def patch_write(self: Serial, data: bytes) -> int:
+    def patch_write(self: SerialClass, data: bytes) -> int:
         return len(data)
 
-    def patch_read(self: Serial, size: int = 1) -> bytes:
+    def patch_read(self: SerialClass, size: int = 1) -> bytes:
         return TEST_RX
 
     @property
-    def patch_in_waiting(self: Serial) -> int:
+    def patch_in_waiting(self: SerialClass) -> int:
         return len(TEST_RX)
 
-    def patch_open(self: Serial) -> None:
+    def patch_open(self: SerialClass) -> None:
         self.is_open = True
 
-    def patch_close(self: Serial) -> None:
+    def patch_close(self: SerialClass) -> None:
         self.is_open = False
 
-    monkeypatch.setattr(Serial, "write", patch_write)
-    monkeypatch.setattr(Serial, "read", patch_read)
-    monkeypatch.setattr(Serial, "open", patch_open)
-    monkeypatch.setattr(Serial, "close", patch_close)
-    monkeypatch.setattr(Serial, "in_waiting", patch_in_waiting)
+    monkeypatch.setattr(SerialClass, "write", patch_write)
+    monkeypatch.setattr(SerialClass, "read", patch_read)
+    monkeypatch.setattr(SerialClass, "open", patch_open)
+    monkeypatch.setattr(SerialClass, "close", patch_close)
+    monkeypatch.setattr(SerialClass, "in_waiting", patch_in_waiting)
     result = pytester.runpytest("--record")
 
-    with open("test_record.jsonl", "r") as f:
-        recording = [json.loads(line) for line in f.readlines()]
+    with open("test_record.jsonl") as f:
+        recording = [json.loads(line) for line in f]
 
     expected = [json.loads(line) for line in TEST_JSONL.splitlines()]
 
@@ -117,8 +134,8 @@ def test_update_existing(monkeypatch, pytester):
     monkeypatch.setattr(Serial, "close", patch_close)
     result = pytester.runpytest("--record")
 
-    with open("test_update_existing.jsonl", "r") as f:
-        recording = [json.loads(line) for line in f.readlines()]
+    with open("test_update_existing.jsonl") as f:
+        recording = [json.loads(line) for line in f]
 
     expected_rx_enc = "AQE="
     expected_tx_enc = "AgI="
