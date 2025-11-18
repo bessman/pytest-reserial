@@ -1,5 +1,6 @@
 import json
 
+import pytest
 from serial import Serial
 
 TEST_RX = b"\x01"
@@ -139,10 +140,14 @@ def test_replay(pytester):
     assert result.ret == 0
 
 
-def test_dont_patch(pytester):
+@pytest.mark.parametrize(
+    "serial_module",
+    [pytest.param("serial", id="main library"), pytest.param("serial.rfc2217", id="RFC2217 connection")],
+)
+def test_dont_patch(serial_module: str, pytester):
     pytester.makepyfile(
-        """
-        from serial import Serial
+        f"""
+        from {serial_module} import Serial
         real_read = Serial.read
         def test_something(reserial):
             assert Serial.read == real_read
