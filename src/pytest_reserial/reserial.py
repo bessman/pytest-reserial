@@ -80,21 +80,26 @@ def reserial(
     test_name = request.node.name
     log = get_traffic_log(mode, log_path, test_name)
     if mode != Mode.DONT_PATCH:
-        for SerialClass, (
-            read_patch,
-            write_patch,
-            open_patch,
-            close_patch,
-            reconfigure_port_patch,
-            in_waiting_patch,
-            reset_input_buffer,
+        for (
+            SerialClass,  # noqa: N806 # it is standard for variable names representing actual class types to be PascalCase
+            (
+                read_patch,
+                write_patch,
+                open_patch,
+                close_patch,
+                reconfigure_port_patch,
+                in_waiting_patch,
+                reset_input_buffer,
+            ),
         ) in get_patched_methods(mode, log).items():
             monkeypatch.setattr(SerialClass, "read", read_patch)
             monkeypatch.setattr(SerialClass, "write", write_patch)
             monkeypatch.setattr(SerialClass, "open", open_patch)
             monkeypatch.setattr(SerialClass, "close", close_patch)
             monkeypatch.setattr(
-                SerialClass, "_reconfigure_port", reconfigure_port_patch
+                SerialClass,
+                "_reconfigure_port",
+                reconfigure_port_patch,
             )
             monkeypatch.setattr(SerialClass, "in_waiting", in_waiting_patch)
             monkeypatch.setattr(SerialClass, "reset_input_buffer", reset_input_buffer)
@@ -338,20 +343,29 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         Does not need to be patched when recording, so this is `Serial.in_waiting`.
 
     """
-    def make_record_write(real_write: Callable) -> Callable:
+
+    def make_record_write(
+        real_write: Callable[[Serial, bytes], int],
+    ) -> Callable[[Serial, bytes], int]:
         """Create a record_write function for any Serial class."""
+
         def record_write(self: Serial, data: bytes) -> int:
             log["tx"] += data
             written: int = real_write(self, data)
             return written
+
         return record_write
-    
-    def make_record_read(real_read: Callable) -> Callable:
+
+    def make_record_read(
+        real_read: Callable[[Serial, int], bytes],
+    ) -> Callable[[Serial, int], bytes]:
         """Create a record_read function for any Serial class."""
+
         def record_read(self: Serial, size: int = 1) -> bytes:
             data: bytes = real_read(self, size)
             log["rx"] += data
             return data
+
         return record_read
 
     return {
