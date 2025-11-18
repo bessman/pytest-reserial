@@ -28,7 +28,7 @@ def make_test_file(serial_init: str) -> str:
             """
 
 
-def make_file_replay(serial_init:str)->str:
+def make_file_replay(serial_init: str) -> str:
     return f"""
             import pytest
             import serial
@@ -51,6 +51,7 @@ def make_file_replay(serial_init:str)->str:
                     s.write({TEST_TX!r})
             """
 
+
 def make_file_bad(serial_init: str) -> str:
     return f"""
                     import serial
@@ -60,6 +61,8 @@ def make_file_bad(serial_init: str) -> str:
                         s.write({TEST_RX!r})
                         assert s.read() == {TEST_RX!r}
                     """
+
+
 TEST_JSONL = (
     f'{{"test_reserial": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_ENC}"}}}}\n'
     f'{{"test_reserial2": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_ENC}"}}}}\n'
@@ -180,6 +183,7 @@ def test_update_existing(test_file: str, SerialClass, monkeypatch, pytester):
     assert recording == expected
     assert result.ret == 0
 
+
 @pytest.mark.parametrize(
     "serial_init",
     [
@@ -230,6 +234,7 @@ def test_invalid_option(serial_init: str, pytester):
     result = pytester.runpytest("--disable-reserial", "--record")
     result.assert_outcomes(errors=2)
 
+
 @pytest.mark.parametrize(
     "serial_init",
     [
@@ -239,7 +244,7 @@ def test_invalid_option(serial_init: str, pytester):
         ),
     ],
 )
-def test_bad_tx(serial_init:str, pytester):
+def test_bad_tx(serial_init: str, pytester):
     pytester.makefile(".jsonl", test_bad_tx=TEST_JSONL)
     pytester.makepyfile(make_file_bad(serial_init))
     result = pytester.runpytest()
