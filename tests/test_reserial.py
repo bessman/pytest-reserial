@@ -3,6 +3,7 @@ import json
 import pytest
 from serial import Serial
 from serial.rfc2217 import Serial as RFC2217Serial
+
 TEST_RX = b"\x01"
 TEST_RX_ENC = "AQ=="
 TEST_TX = b"\x02"
@@ -65,9 +66,11 @@ TEST_JSONL = (
 
 
 @pytest.mark.parametrize(
-    ("test_file", "SerialClass"), [pytest.param(TEST_FILE, Serial, id="standard serial connection"),
-                                   pytest.param(TEST_FILE_RFC2217, RFC2217Serial, id="standard serial connection")
-                                   ]
+    ("test_file", "SerialClass"),
+    [
+        pytest.param(TEST_FILE, Serial, id="standard serial connection"),
+        pytest.param(TEST_FILE_RFC2217, RFC2217Serial, id="standard serial connection"),
+    ],
 )
 def test_record(test_file: str, SerialClass, monkeypatch, pytester):
     pytester.makepyfile(test_file)
@@ -104,34 +107,53 @@ def test_record(test_file: str, SerialClass, monkeypatch, pytester):
     assert result.ret == 0
 
 
-def test_update_existing(monkeypatch, pytester):
-    pytester.makefile(".jsonl", test_update_existing=TEST_JSONL)
-    pytester.makepyfile(
-        f"""
+@pytest.mark.parametrize(
+    ("test_file", "SerialClass"),
+    [
+        pytest.param(
+            f"""
         import serial
         def test_reserial(reserial):
             s = serial.Serial(port="/dev/ttyUSB0")
             s.write({2 * TEST_TX})
             assert s.read() == {2 * TEST_RX}
-        """
-    )
+        """,
+            Serial,
+            id="standard serial connection",
+        ),
+        pytest.param(
+            f"""
+        from serial import serial_for_url
+        def test_reserial(reserial):
+            s = serial_for_url("rfc2217://localhost:1234")
+            s.write({2 * TEST_TX})
+            assert s.read() == {2 * TEST_RX}
+        """,
+            RFC2217Serial,
+            id="standard serial connection",
+        ),
+    ],
+)
+def test_update_existing(test_file: str, SerialClass, monkeypatch, pytester):
+    pytester.makefile(".jsonl", test_update_existing=TEST_JSONL)
+    pytester.makepyfile(test_file)
 
-    def patch_write(self: Serial, data: bytes) -> int:
+    def patch_write(self: SerialClass, data: bytes) -> int:
         return len(data)
 
-    def patch_read(self: Serial, size: int = 1) -> bytes:
+    def patch_read(self: SerialClass, size: int = 1) -> bytes:
         return 2 * TEST_RX
 
-    def patch_open(self: Serial) -> None:
+    def patch_open(self: SerialClass) -> None:
         self.is_open = True
 
-    def patch_close(self: Serial) -> None:
+    def patch_close(self: SerialClass) -> None:
         self.is_open = False
 
-    monkeypatch.setattr(Serial, "write", patch_write)
-    monkeypatch.setattr(Serial, "read", patch_read)
-    monkeypatch.setattr(Serial, "open", patch_open)
-    monkeypatch.setattr(Serial, "close", patch_close)
+    monkeypatch.setattr(SerialClass, "write", patch_write)
+    monkeypatch.setattr(SerialClass, "read", patch_read)
+    monkeypatch.setattr(SerialClass, "open", patch_open)
+    monkeypatch.setattr(SerialClass, "close", patch_close)
     result = pytester.runpytest("--record")
 
     with open("test_update_existing.jsonl") as f:
@@ -200,19 +222,35 @@ def test_help_message(pytester):
     assert result.ret == 0
 
 
-def test_change_settings(pytester):
-    pytester.makefile(
-        ".jsonl",
-        test_change_settings='{"test_reserial": {"tx": "", "rx": ""}}',
-    )
-    pytester.makepyfile(
-        """
+@pytest.mark.parametrize(
+    "test_file",
+    [
+        pytest.param(
+            """
             import serial
             def test_reserial(reserial):
                 s = serial.Serial(port="/dev/ttyUSB0")
                 s.timeout = 1
-        """
+        """,
+            id="main library",
+        ),
+        pytest.param(
+            """
+            from serial import serial_for_url
+            def test_reserial(reserial):
+                s = serial_for_url("rfc2217://localhost:1234")
+                s.timeout = 1
+        """,
+            id="RFC2217 connection",
+        ),
+    ],
+)
+def test_change_settings(test_file: str, pytester):
+    pytester.makefile(
+        ".jsonl",
+        test_change_settings='{"test_reserial": {"tx": "", "rx": ""}}',
     )
+    pytester.makepyfile(test_file)
     result = pytester.runpytest()
     assert result.ret == 0
 
