@@ -62,6 +62,7 @@ def make_file_bad(serial_init: str) -> str:
                 assert s.read() == {TEST_RX!r}
             """
 
+
 def make_file_update_existing(serial_init: str) -> str:
     return f"""
             import serial
@@ -71,6 +72,7 @@ def make_file_update_existing(serial_init: str) -> str:
                 s.write({2 * TEST_TX})
                 assert s.read() == {2 * TEST_RX}
                 """
+
 
 TEST_JSONL = (
     f'{{"test_reserial": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_ENC}"}}}}\n'
@@ -138,7 +140,6 @@ def test_record(test_file: str, SerialClass, monkeypatch, pytester):
         ),
         pytest.param(
             SERIAL_FOR_URL_INIT,
-    
             RFC2217Serial,
             id="standard serial connection",
         ),
