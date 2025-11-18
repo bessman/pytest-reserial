@@ -74,6 +74,16 @@ def make_file_update_existing(serial_init: str) -> str:
                 """
 
 
+def make_change_settings_file(serial_init: str) -> str:
+    return f"""
+            import serial
+            from serial import serial_for_url
+            def test_reserial(reserial):
+                s = {serial_init}
+                s.timeout = 1
+        """
+
+
 TEST_JSONL = (
     f'{{"test_reserial": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_ENC}"}}}}\n'
     f'{{"test_reserial2": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_ENC}"}}}}\n'
@@ -212,6 +222,15 @@ class TestSerialInit:
         result = pytester.runpytest()
         result.assert_outcomes(errors=1, failed=1)
 
+    def test_change_settings(self, serial_init: str, pytester):
+        pytester.makefile(
+            ".jsonl",
+            test_change_settings='{"test_reserial": {"tx": "", "rx": ""}}',
+        )
+        pytester.makepyfile(make_change_settings_file(serial_init))
+        result = pytester.runpytest()
+        assert result.ret == 0
+
 
 @pytest.mark.parametrize(
     "serial_module",
@@ -243,39 +262,6 @@ def test_help_message(pytester):
             "*--disable-reserial * Disable reserial to allow standard*",
         ]
     )
-    assert result.ret == 0
-
-
-@pytest.mark.parametrize(
-    "test_file",
-    [
-        pytest.param(
-            """
-            import serial
-            def test_reserial(reserial):
-                s = serial.Serial(port="/dev/ttyUSB0")
-                s.timeout = 1
-        """,
-            id="main library",
-        ),
-        pytest.param(
-            """
-            from serial import serial_for_url
-            def test_reserial(reserial):
-                s = serial_for_url("rfc2217://localhost:1234")
-                s.timeout = 1
-        """,
-            id="RFC2217 connection",
-        ),
-    ],
-)
-def test_change_settings(test_file: str, pytester):
-    pytester.makefile(
-        ".jsonl",
-        test_change_settings='{"test_reserial": {"tx": "", "rx": ""}}',
-    )
-    pytester.makepyfile(test_file)
-    result = pytester.runpytest()
     assert result.ret == 0
 
 
