@@ -1,10 +1,12 @@
 # Changelog
 
-## [0.5.1] - Development
+## [0.5.2] - Development
+
+## [0.5.1] - 2025-11-23
 
 ### Added
 
-- Add support RFC2217 serial connections created via `serial.serial_for_url`
+- Add support RFC2217 serial connections created via `serial.serial_for_url` ([`1e2e211`](https://github.com/bessman/pytest-reserial/commit/1e2e211eeec9a90466dc476a0daff132e58dd9b5)) (Eli Fine)
 
 ## [0.5.0] - 2025-11-17
 
@@ -104,6 +106,7 @@ _Maintenance release._
 
 _Initial release._
 
+[0.5.1]: https://github.com/bessman/pytest-reserial/releases/tag/0.5.0
 [0.5.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.5.0
 [0.4.3]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.3
 [0.4.2]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.2
