@@ -4,25 +4,30 @@ from __future__ import annotations
 
 import base64
 import json
+from collections.abc import Callable
 from enum import IntEnum
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Literal
+from typing import TYPE_CHECKING, Literal
 
 import pytest
 from serial import PortNotOpenError, Serial  # type: ignore[import-untyped]
+from serial.rfc2217 import Serial as RFC2217Serial  # type: ignore[import-untyped]
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
 TrafficLog = dict[Literal["rx", "tx"], bytes]
-PatchMethods = tuple[
-    Callable[[Serial, int], bytes],  # read
-    Callable[[Serial, bytes], int],  # write
-    Callable[[Serial], None],  # open
-    Callable[[Serial], None],  # close
-    Callable[[Serial, bool], None],  # _reconfigure_port
-    Callable[[Serial], int],  # in_waiting
-    Callable[[Serial], None],  # reset_input_buffer
+PatchMethods = dict[
+    type[Serial],
+    tuple[
+        Callable[[Serial, int], bytes],  # read
+        Callable[[Serial, bytes], int],  # write
+        Callable[[Serial], None],  # open
+        Callable[[Serial], None],  # close
+        Callable[[Serial, bool], None],  # _reconfigure_port
+        Callable[[Serial], int],  # in_waiting
+        Callable[[Serial], None],  # reset_input_buffer
+    ],
 ]
 
 
@@ -73,23 +78,30 @@ def reserial(
     log_path = Path(request.path).parent / (Path(request.path).stem + ".jsonl")
     test_name = request.node.name
     log = get_traffic_log(mode, log_path, test_name)
-
-    (
-        read_patch,
-        write_patch,
-        open_patch,
-        close_patch,
-        reconfigure_port_patch,
-        in_waiting_patch,
-        reset_input_buffer,
-    ) = get_patched_methods(mode, log)
-    monkeypatch.setattr(Serial, "read", read_patch)
-    monkeypatch.setattr(Serial, "write", write_patch)
-    monkeypatch.setattr(Serial, "open", open_patch)
-    monkeypatch.setattr(Serial, "close", close_patch)
-    monkeypatch.setattr(Serial, "_reconfigure_port", reconfigure_port_patch)
-    monkeypatch.setattr(Serial, "in_waiting", in_waiting_patch)
-    monkeypatch.setattr(Serial, "reset_input_buffer", reset_input_buffer)
+    if mode != Mode.DONT_PATCH:
+        for (
+            SerialClass,  # noqa: N806 # it is standard for variable names representing actual class types to be PascalCase
+            (
+                read_patch,
+                write_patch,
+                open_patch,
+                close_patch,
+                reconfigure_port_patch,
+                in_waiting_patch,
+                reset_input_buffer,
+            ),
+        ) in get_patched_methods(mode, log).items():
+            monkeypatch.setattr(SerialClass, "read", read_patch)
+            monkeypatch.setattr(SerialClass, "write", write_patch)
+            monkeypatch.setattr(SerialClass, "open", open_patch)
+            monkeypatch.setattr(SerialClass, "close", close_patch)
+            monkeypatch.setattr(
+                SerialClass,
+                "_reconfigure_port",
+                reconfigure_port_patch,
+            )
+            monkeypatch.setattr(SerialClass, "in_waiting", in_waiting_patch)
+            monkeypatch.setattr(SerialClass, "reset_input_buffer", reset_input_buffer)
 
     yield
 
@@ -99,7 +111,7 @@ def reserial(
 
     if log["rx"] or log["tx"]:
         msg = (
-            "Some messages where not replayed:}\n"
+            "Some messages were not replayed:}\n"
             f"Remaining RX: {len(log['rx'])}\n"
             f"Remaining TX: {len(log['tx'])}"
         )
@@ -183,17 +195,7 @@ def get_patched_methods(mode: Mode, log: TrafficLog) -> PatchMethods:
     """
     if mode == Mode.REPLAY:
         return get_replay_methods(log)
-    if mode == Mode.RECORD:
-        return get_record_methods(log)
-    return (
-        Serial.read,
-        Serial.write,
-        Serial.open,
-        Serial.close,
-        Serial._reconfigure_port,  # noqa: SLF001
-        Serial.in_waiting,
-        Serial.reset_input_buffer,
-    )
+    return get_record_methods(log)
 
 
 def get_replay_methods(log: TrafficLog) -> PatchMethods:
@@ -272,15 +274,26 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         """Return the number of bytes in RX data left to replay."""
         return len(log["rx"])
 
-    return (
-        replay_read,
-        replay_write,
-        replay_open,
-        replay_close,
-        replay_reconfigure_port,
-        replay_in_waiting,
-        replay_reset_input_buffer,
-    )
+    return {
+        Serial: (
+            replay_read,
+            replay_write,
+            replay_open,
+            replay_close,
+            replay_reconfigure_port,
+            replay_in_waiting,
+            replay_reset_input_buffer,
+        ),
+        RFC2217Serial: (
+            replay_read,
+            replay_write,
+            replay_open,
+            replay_close,
+            replay_reconfigure_port,
+            replay_in_waiting,
+            replay_reset_input_buffer,
+        ),
+    }
 
 
 # These patches don't need access to logs, so they can stay down here.
@@ -336,38 +349,51 @@ def get_record_methods(log: TrafficLog) -> PatchMethods:
         Does not need to be patched when recording, so this is `Serial.in_waiting`.
 
     """
-    real_read = Serial.read
-    real_write = Serial.write
 
-    def record_write(self: Serial, data: bytes) -> int:
-        """Record TX data before writing to the bus.
+    def make_record_write(
+        real_write: Callable[[Serial, bytes], int],
+    ) -> Callable[[Serial, bytes], int]:
+        """Create a record_write function for any Serial class."""
 
-        Monkeypatch this method over Serial.write to record traffic. Parameters and
-        return values are identical to Serial.write.
-        """
-        log["tx"] += data
-        written: int = real_write(self, data)
-        return written
+        def record_write(self: Serial, data: bytes) -> int:
+            log["tx"] += data
+            written: int = real_write(self, data)
+            return written
 
-    def record_read(self: Serial, size: int = 1) -> bytes:
-        """Record RX data after reading from the bus.
+        return record_write
 
-        Monkeypatch this method over Serial.read to record traffic. Parameters and
-        return values are identical to Serial.read.
-        """
-        data: bytes = real_read(self, size)
-        log["rx"] += data
-        return data
+    def make_record_read(
+        real_read: Callable[[Serial, int], bytes],
+    ) -> Callable[[Serial, int], bytes]:
+        """Create a record_read function for any Serial class."""
 
-    return (
-        record_read,
-        record_write,
-        Serial.open,
-        Serial.close,
-        Serial._reconfigure_port,  # noqa: SLF001
-        Serial.in_waiting,
-        Serial.reset_input_buffer,
-    )
+        def record_read(self: Serial, size: int = 1) -> bytes:
+            data: bytes = real_read(self, size)
+            log["rx"] += data
+            return data
+
+        return record_read
+
+    return {
+        Serial: (
+            make_record_read(Serial.read),
+            make_record_write(Serial.write),
+            Serial.open,
+            Serial.close,
+            Serial._reconfigure_port,  # noqa: SLF001
+            Serial.in_waiting,
+            Serial.reset_input_buffer,
+        ),
+        RFC2217Serial: (
+            make_record_read(RFC2217Serial.read),
+            make_record_write(RFC2217Serial.write),
+            RFC2217Serial.open,
+            RFC2217Serial.close,
+            RFC2217Serial._reconfigure_port,  # noqa: SLF001
+            RFC2217Serial.in_waiting,
+            RFC2217Serial.reset_input_buffer,
+        ),
+    }
 
 
 def write_log(

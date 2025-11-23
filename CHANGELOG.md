@@ -2,6 +2,10 @@
 
 ## [0.5.1] - Development
 
+### Added
+
+- Add support RFC2217 serial connections created via `serial.serial_for_url`
+
 ## [0.5.0] - 2025-11-17
 
 ### Added
