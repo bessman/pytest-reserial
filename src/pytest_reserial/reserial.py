@@ -110,11 +110,7 @@ def reserial(
         return
 
     if log["rx"] or log["tx"]:
-        msg = (
-            "Some messages were not replayed:}\n"
-            f"Remaining RX: {len(log['rx'])}\n"
-            f"Remaining TX: {len(log['tx'])}"
-        )
+        msg = f"Some messages were not replayed:}}\nRemaining RX: {len(log['rx'])}\nRemaining TX: {len(log['tx'])}"
         pytest.fail(msg)
 
 
@@ -156,12 +152,12 @@ def get_traffic_log(mode: Mode, log_path: Path, test_name: str) -> TrafficLog:
             else:
                 msg = f"No recorded traffic for test: {test_name}"
                 raise ValueError(msg)
-            if 'rx_encoding' in log and log['rx_encoding'] == 'utf-8':
-                log["rx"] = log["rx"].encode('utf-8')
+            if "rx_encoding" in log and log["rx_encoding"] == "utf-8":
+                log["rx"] = log["rx"].encode("utf-8")
             else:
                 log["rx"] = base64.b64decode(log["rx"])
-            if 'tx_encoding' in log and log['tx_encoding'] == 'utf-8':
-                log["tx"] = log["tx"].encode('utf-8')
+            if "tx_encoding" in log and log["tx_encoding"] == "utf-8":
+                log["tx"] = log["tx"].encode("utf-8")
             else:
                 log["tx"] = base64.b64decode(log["tx"])
             # log["rx"] = base64.b64decode(log["rx"])
@@ -250,10 +246,7 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         if data == log["tx"][: len(data)]:
             log["tx"] = log["tx"][len(data) :]
         else:
-            msg = (
-                "Written data does not match recorded data: "
-                f"{data!r} != {log['tx'][: len(data)]!r}"
-            )
+            msg = f"Written data does not match recorded data: {data!r} != {log['tx'][: len(data)]!r}"
             pytest.fail(msg)
 
         return len(data)
@@ -426,19 +419,19 @@ def write_log(
 
     with log_path.open("r") as fin, tmp_path.open("w") as fout:
         seen = False
-        json_data:dict[str,str]={}
+        json_data: dict[str, str] = {}
         try:
             rx = log["rx"].decode("utf-8")
-            json_data["rx_encoding"]="utf-8"
+            json_data["rx_encoding"] = "utf-8"
         except UnicodeDecodeError:
             rx = base64.b64encode(bytes(log["rx"])).decode("ascii")
         try:
             tx = log["tx"].decode("utf-8")
-            json_data["tx_encoding"]="utf-8"
+            json_data["tx_encoding"] = "utf-8"
         except UnicodeDecodeError:
             tx = base64.b64encode(bytes(log["tx"])).decode("ascii")
-        json_data["rx"]=rx
-        json_data["tx"]=tx
+        json_data["rx"] = rx
+        json_data["tx"] = tx
         new_line = json.dumps({test_name: json_data}) + "\n"
 
         # Recorded traffic is stored as JSON Lines. Parse one line at a time.
