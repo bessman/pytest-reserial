@@ -4,10 +4,10 @@ import pytest
 from serial import Serial
 from serial.rfc2217 import Serial as RFC2217Serial
 
-TEST_RX = b"\x01"
-TEST_RX_ENC = "AQ=="
-TEST_TX = b"\x02"
-TEST_TX_ENC = "Ag=="
+TEST_RX = b"\xfe"
+TEST_RX_ENC = "/g=="
+TEST_TX = b"\xff"
+TEST_TX_ENC = "/w=="
 STANDARD_SERIAL_CONNECTION_INIT = 'serial.Serial(port="/dev/ttyUSB0")'
 SERIAL_FOR_URL_INIT = 'serial_for_url("rfc2217://127.0.0.1:8080")'
 
@@ -180,8 +180,8 @@ def test_update_existing(serial_init: str, SerialClass, monkeypatch, pytester):
     with open("test_update_existing.jsonl") as f:
         recording = [json.loads(line) for line in f]
 
-    expected_rx_enc = "AQE="
-    expected_tx_enc = "AgI="
+    expected_rx_enc = "/v4="
+    expected_tx_enc = "//8="
     expected_jsonl = (
         f'{{"test_reserial": {{"rx": "{expected_rx_enc}", "tx": "{expected_tx_enc}"}}}}\n'
         f'{{"test_reserial2": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_ENC}"}}}}\n'
