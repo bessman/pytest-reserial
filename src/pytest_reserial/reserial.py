@@ -111,7 +111,7 @@ def reserial(
 
     if log["rx"] or log["tx"]:
         msg = (
-            "Some messages where not replayed:}\n"
+            "Some messages were not replayed:}\n"
             f"Remaining RX: {len(log['rx'])}\n"
             f"Remaining TX: {len(log['tx'])}"
         )
