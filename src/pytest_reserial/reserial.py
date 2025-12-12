@@ -110,7 +110,11 @@ def reserial(
         return
 
     if log["rx"] or log["tx"]:
-        msg = f"Some messages were not replayed:}}\nRemaining RX: {len(log['rx'])}\nRemaining TX: {len(log['tx'])}"
+        msg = (
+            "Some messages where not replayed:}\n"
+            f"Remaining RX: {len(log['rx'])}\n"
+            f"Remaining TX: {len(log['tx'])}"
+        )
         pytest.fail(msg)
 
 
@@ -160,8 +164,6 @@ def get_traffic_log(mode: Mode, log_path: Path, test_name: str) -> TrafficLog:
                 log["tx"] = log["tx"].encode("utf-8")
             else:
                 log["tx"] = base64.b64decode(log["tx"])
-            # log["rx"] = base64.b64decode(log["rx"])
-            # log["tx"] = base64.b64decode(log["tx"])
 
     return log
 
@@ -246,7 +248,10 @@ def get_replay_methods(log: TrafficLog) -> PatchMethods:
         if data == log["tx"][: len(data)]:
             log["tx"] = log["tx"][len(data) :]
         else:
-            msg = f"Written data does not match recorded data: {data!r} != {log['tx'][: len(data)]!r}"
+            msg = (
+                "Written data does not match recorded data: "
+                f"{data!r} != {log['tx'][: len(data)]!r}"
+            )
             pytest.fail(msg)
 
         return len(data)

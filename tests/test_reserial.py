@@ -16,7 +16,9 @@ STANDARD_SERIAL_CONNECTION_INIT = 'serial.Serial(port="/dev/ttyUSB0")'
 SERIAL_FOR_URL_INIT = 'serial_for_url("rfc2217://127.0.0.1:8080")'
 
 
-def make_test_file(serial_init: str, *, test_tx: bytes = TEST_TX, test_rx: bytes = TEST_RX) -> str:
+def make_test_file(
+    serial_init: str, *, test_tx: bytes = TEST_TX, test_rx: bytes = TEST_RX
+) -> str:
     return f"""
             import serial
             from serial import serial_for_url
@@ -32,7 +34,9 @@ def make_test_file(serial_init: str, *, test_tx: bytes = TEST_TX, test_rx: bytes
             """
 
 
-def make_file_replay(serial_init: str, *, test_tx: bytes = TEST_TX, test_rx: bytes = TEST_RX) -> str:
+def make_file_replay(
+    serial_init: str, *, test_tx: bytes = TEST_TX, test_rx: bytes = TEST_RX
+) -> str:
     return f"""
             import pytest
             import serial
@@ -117,12 +121,25 @@ TEST_JSONL_UTF8 = (
 @pytest.mark.parametrize(
     ("test_tx", "test_rx", "expected_jsonl"),
     [
-        pytest.param(TEST_TX, TEST_RX, TEST_JSONL, id="bytes that cannot decode to UTF-8 text"),
-        pytest.param(TEST_TX_UTF8, TEST_RX_UTF8, TEST_JSONL_UTF8, id="bytes that can decode to UTF-8 text"),
+        pytest.param(
+            TEST_TX, TEST_RX, TEST_JSONL, id="bytes that cannot decode to UTF-8 text"
+        ),
+        pytest.param(
+            TEST_TX_UTF8,
+            TEST_RX_UTF8,
+            TEST_JSONL_UTF8,
+            id="bytes that can decode to UTF-8 text",
+        ),
     ],
 )
 def test_record(
-    serial_init: str, SerialClass, test_tx: bytes, test_rx: bytes, expected_jsonl: str, monkeypatch, pytester
+    serial_init: str,
+    SerialClass,
+    test_tx: bytes,
+    test_rx: bytes,
+    expected_jsonl: str,
+    monkeypatch,
+    pytester,
 ):
     pytester.makepyfile(make_test_file(serial_init, test_tx=test_tx, test_rx=test_rx))
 
@@ -215,7 +232,9 @@ def test_update_existing(serial_init: str, SerialClass, monkeypatch, pytester):
     "serial_init",
     [
         pytest.param(STANDARD_SERIAL_CONNECTION_INIT, id="standard serial connection"),
-        pytest.param(SERIAL_FOR_URL_INIT, id="serial_for_url connection to RFC2217 server"),
+        pytest.param(
+            SERIAL_FOR_URL_INIT, id="serial_for_url connection to RFC2217 server"
+        ),
     ],
 )
 class TestSerialInit:
