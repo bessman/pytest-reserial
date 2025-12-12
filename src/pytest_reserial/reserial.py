@@ -156,11 +156,11 @@ def get_traffic_log(mode: Mode, log_path: Path, test_name: str) -> TrafficLog:
             else:
                 msg = f"No recorded traffic for test: {test_name}"
                 raise ValueError(msg)
-            if "rx_encoding" in log and log["rx_encoding"] == "utf-8":
+            if log.get("rx_encoding") == "utf-8":
                 log["rx"] = log["rx"].encode("utf-8")
             else:
                 log["rx"] = base64.b64decode(log["rx"])
-            if "tx_encoding" in log and log["tx_encoding"] == "utf-8":
+            if log.get("tx_encoding") == "utf-8":
                 log["tx"] = log["tx"].encode("utf-8")
             else:
                 log["tx"] = base64.b64decode(log["tx"])
