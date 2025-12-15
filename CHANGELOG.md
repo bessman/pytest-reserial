@@ -2,6 +2,10 @@
 
 ## [0.5.2] - Development
 
+### Added
+
+- If traffic can be decoded as UTF-8, then it is recorded as a UTF-8 string (rather than base64).
+
 ## [0.5.1] - 2025-11-23
 
 ### Added
