@@ -17,7 +17,12 @@ SERIAL_FOR_URL_INIT = 'serial_for_url("rfc2217://127.0.0.1:8080")'
 
 
 def make_test_file(
-    serial_init: str, *, test_tx: bytes = TEST_TX, test_rx: bytes = TEST_RX
+    serial_init: str,
+    *,
+    test_tx: bytes = TEST_TX,
+    test_rx: bytes = TEST_RX,
+    test2_tx: bytes = TEST_TX,
+    test2_rx: bytes = TEST_RX,
 ) -> str:
     return f"""
             import serial
@@ -29,8 +34,8 @@ def make_test_file(
                 assert s.read() == {test_rx!r}
             def test_reserial2(reserial):
                 s = {serial_init}
-                s.write({test_tx!r})
-                assert s.read() == {test_rx!r}
+                s.write({test2_tx!r})
+                assert s.read() == {test2_rx!r}
             """
 
 
@@ -104,6 +109,11 @@ TEST_JSONL_UTF8 = (
     f'{{"test_reserial2": {{"rx": "{TEST_RX_UTF8_ENC}", "tx": "{TEST_TX_UTF8_ENC}", "rx_encoding": "utf-8", "tx_encoding": "utf-8"}}}}\n'
 )
 
+TEST_JSONL_MIXED_UTF8_B64 = (
+    f'{{"test_reserial": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_UTF8_ENC}", "tx_encoding": "utf-8"}}}}\n'
+    f'{{"test_reserial2": {{"rx": "{TEST_RX_UTF8_ENC}", "tx": "{TEST_TX_ENC}", "rx_encoding": "utf-8"}}}}\n'
+)
+
 
 @pytest.mark.parametrize(
     ("serial_init", "SerialClass"),
@@ -121,16 +131,31 @@ TEST_JSONL_UTF8 = (
     ],
 )
 @pytest.mark.parametrize(
-    ("test_tx", "test_rx", "expected_jsonl"),
+    ("test_tx", "test_rx", "test2_tx", "test2_rx", "expected_jsonl"),
     [
         pytest.param(
-            TEST_TX, TEST_RX, TEST_JSONL, id="bytes that cannot decode to UTF-8 text"
+            TEST_TX,
+            TEST_RX,
+            TEST_TX,
+            TEST_RX,
+            TEST_JSONL,
+            id="bytes that cannot decode to UTF-8 text",
         ),
         pytest.param(
             TEST_TX_UTF8,
             TEST_RX_UTF8,
+            TEST_TX_UTF8,
+            TEST_RX_UTF8,
             TEST_JSONL_UTF8,
             id="bytes that can decode to UTF-8 text",
+        ),
+        pytest.param(
+            TEST_TX_UTF8,
+            TEST_RX,
+            TEST_TX,
+            TEST_RX_UTF8,
+            TEST_JSONL_MIXED_UTF8_B64,
+            id="mixed UTF-8 and non-UTF-8 bytes",
         ),
     ],
 )
@@ -139,17 +164,34 @@ def test_record(
     SerialClass,
     test_tx: bytes,
     test_rx: bytes,
+    test2_tx: bytes,
+    test2_rx: bytes,
     expected_jsonl: str,
     monkeypatch,
     pytester,
 ):
-    pytester.makepyfile(make_test_file(serial_init, test_tx=test_tx, test_rx=test_rx))
+    pytester.makepyfile(
+        make_test_file(
+            serial_init,
+            test_tx=test_tx,
+            test_rx=test_rx,
+            test2_tx=test2_tx,
+            test2_rx=test2_rx,
+        )
+    )
 
     def patch_write(self: SerialClass, data: bytes) -> int:
         return len(data)
 
+    patched_read_call_count=0
+
     def patch_read(self: SerialClass, size: int = 1) -> bytes:
-        return test_rx
+        nonlocal patched_read_call_count
+        patched_read_call_count += 1
+        if patched_read_call_count <= 1:
+            return test_rx
+        else:
+            return test2_rx
 
     @property
     def patch_in_waiting(self: SerialClass) -> int:
