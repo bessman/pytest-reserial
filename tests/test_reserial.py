@@ -71,14 +71,16 @@ def make_file_bad(serial_init: str) -> str:
             """
 
 
-def make_file_update_existing(serial_init: str) -> str:
+def make_file_update_existing(
+    serial_init: str, *, test_tx: bytes = TEST_TX, test_rx: bytes = TEST_RX
+) -> str:
     return f"""
             import serial
             from serial import serial_for_url
             def test_reserial(reserial):
                 s = {serial_init}
-                s.write({2 * TEST_TX})
-                assert s.read() == {2 * TEST_RX}
+                s.write({2 * test_tx})
+                assert s.read() == {2 * test_rx}
                 """
 
 
@@ -190,15 +192,58 @@ def test_record(
         ),
     ],
 )
-def test_update_existing(serial_init: str, SerialClass, monkeypatch, pytester):
-    pytester.makefile(".jsonl", test_update_existing=TEST_JSONL)
-    pytester.makepyfile(make_file_update_existing(serial_init))
+@pytest.mark.parametrize(
+    (
+        "starting_jsonl",
+        "expected_jsonl",
+        "starting_test_rx",
+        "starting_test_tx",
+    ),
+    [
+        pytest.param(
+            TEST_JSONL,
+            (
+                f'{{"test_reserial": {{"rx": "/v4=", "tx": "//8="}}}}\n'
+                f'{{"test_reserial2": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_ENC}"}}}}\n'
+            ),
+            TEST_RX,
+            TEST_TX,
+            id="bytes that cannot decode to UTF-8 text",
+        ),
+        pytest.param(
+            TEST_JSONL_UTF8,
+            (
+                f'{{"test_reserial": {{"rx": "Hello World!\\nHello World!\\n", "tx": "Welcome!\\rWelcome!\\r", "rx_encoding": "utf-8", "tx_encoding": "utf-8"}}}}\n'
+                f'{{"test_reserial2": {{"rx": "{TEST_RX_UTF8_ENC}", "tx": "{TEST_TX_UTF8_ENC}", "rx_encoding": "utf-8", "tx_encoding": "utf-8"}}}}\n'
+            ),
+            TEST_RX_UTF8,
+            TEST_TX_UTF8,
+            id="bytes that can decode to UTF-8 text",
+        ),
+    ],
+)
+def test_update_existing(
+    serial_init: str,
+    SerialClass,
+    starting_jsonl: str,
+    expected_jsonl: str,
+    starting_test_rx: bytes,
+    starting_test_tx: bytes,
+    monkeypatch,
+    pytester,
+):
+    pytester.makefile(".jsonl", test_update_existing=starting_jsonl)
+    pytester.makepyfile(
+        make_file_update_existing(
+            serial_init, test_tx=starting_test_tx, test_rx=starting_test_rx
+        )
+    )
 
     def patch_write(self: SerialClass, data: bytes) -> int:
         return len(data)
 
     def patch_read(self: SerialClass, size: int = 1) -> bytes:
-        return 2 * TEST_RX
+        return 2 * starting_test_rx
 
     def patch_open(self: SerialClass) -> None:
         self.is_open = True
@@ -214,13 +259,6 @@ def test_update_existing(serial_init: str, SerialClass, monkeypatch, pytester):
 
     with open("test_update_existing.jsonl") as f:
         recording = [json.loads(line) for line in f]
-
-    expected_rx_enc = "/v4="
-    expected_tx_enc = "//8="
-    expected_jsonl = (
-        f'{{"test_reserial": {{"rx": "{expected_rx_enc}", "tx": "{expected_tx_enc}"}}}}\n'
-        f'{{"test_reserial2": {{"rx": "{TEST_RX_ENC}", "tx": "{TEST_TX_ENC}"}}}}\n'
-    )
 
     expected = [json.loads(line) for line in expected_jsonl.splitlines()]
 
