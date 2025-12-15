@@ -183,7 +183,7 @@ def test_record(
     def patch_write(self: SerialClass, data: bytes) -> int:
         return len(data)
 
-    patched_read_call_count=0
+    patched_read_call_count = 0
 
     def patch_read(self: SerialClass, size: int = 1) -> bytes:
         nonlocal patched_read_call_count
