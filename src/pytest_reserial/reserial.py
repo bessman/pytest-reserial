@@ -156,9 +156,14 @@ def get_traffic_log(mode: Mode, log_path: Path, test_name: str) -> TrafficLog:
             else:
                 msg = f"No recorded traffic for test: {test_name}"
                 raise ValueError(msg)
-
-            log["rx"] = base64.b64decode(log["rx"])
-            log["tx"] = base64.b64decode(log["tx"])
+            if log.get("rx_encoding") == "utf-8":
+                log["rx"] = log["rx"].encode("utf-8")
+            else:
+                log["rx"] = base64.b64decode(log["rx"])
+            if log.get("tx_encoding") == "utf-8":
+                log["tx"] = log["tx"].encode("utf-8")
+            else:
+                log["tx"] = base64.b64decode(log["tx"])
 
     return log
 
@@ -419,9 +424,20 @@ def write_log(
 
     with log_path.open("r") as fin, tmp_path.open("w") as fout:
         seen = False
-        rx = base64.b64encode(bytes(log["rx"])).decode("ascii")
-        tx = base64.b64encode(bytes(log["tx"])).decode("ascii")
-        new_line = json.dumps({test_name: {"rx": rx, "tx": tx}}) + "\n"
+        json_data: dict[str, str] = {}
+        try:
+            rx = log["rx"].decode("utf-8")
+            json_data["rx_encoding"] = "utf-8"
+        except UnicodeDecodeError:
+            rx = base64.b64encode(bytes(log["rx"])).decode("ascii")
+        try:
+            tx = log["tx"].decode("utf-8")
+            json_data["tx_encoding"] = "utf-8"
+        except UnicodeDecodeError:
+            tx = base64.b64encode(bytes(log["tx"])).decode("ascii")
+        json_data["rx"] = rx
+        json_data["tx"] = tx
+        new_line = json.dumps({test_name: json_data}) + "\n"
 
         # Recorded traffic is stored as JSON Lines. Parse one line at a time.
         for old_line in fin:
