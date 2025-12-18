@@ -1,10 +1,12 @@
 # Changelog
 
-## [0.5.2] - Development
+## [0.6.1] - Development
 
-### Added
+## [0.6.0] - 2025-12-18
 
-- If traffic can be decoded as UTF-8, then it is recorded as a UTF-8 string (rather than base64).
+### Changed
+
+- __Breaking__: Encode traffic as UTF-8 if possible ([`5166bd5`](https://github.com/bessman/pytest-reserial/commit/5166bd51f753c90d7804a8b1a547d8ac20a77a98)) (Eli Fine)
 
 ## [0.5.1] - 2025-11-23
 
@@ -110,6 +112,7 @@ _Maintenance release._
 
 _Initial release._
 
+[0.5.1]: https://github.com/bessman/pytest-reserial/releases/tag/0.6.0
 [0.5.1]: https://github.com/bessman/pytest-reserial/releases/tag/0.5.1
 [0.5.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.5.0
 [0.4.3]: https://github.com/bessman/pytest-reserial/releases/tag/0.4.3
