@@ -455,4 +455,4 @@ def write_log(
             fout.write(new_line)
 
     # Overwrite old log file.
-    Path(tmp_path).rename(log_path)
+    Path(tmp_path).replace(log_path)
