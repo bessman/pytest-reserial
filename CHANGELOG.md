@@ -1,6 +1,12 @@
 # Changelog
 
-## [0.6.1] - Development
+## [0.6.2] - Development
+
+## [0.6.1] - 2025-12-30
+
+### Fixed
+
+- Fix FileExistsError on Windows ([`b9438c6`](https://github.com/bessman/pytest-reserial/commit/b9438c67b780293328cd9afe2f410f76de50bb60))
 
 ## [0.6.0] - 2025-12-18
 
@@ -112,6 +118,7 @@ _Maintenance release._
 
 _Initial release._
 
+[0.6.1]: https://github.com/bessman/pytest-reserial/releases/tag/0.6.1
 [0.6.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.6.0
 [0.5.1]: https://github.com/bessman/pytest-reserial/releases/tag/0.5.1
 [0.5.0]: https://github.com/bessman/pytest-reserial/releases/tag/0.5.0
